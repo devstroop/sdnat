@@ -375,6 +375,8 @@ pub const DhcpClient = struct {
 pub const Forwarder = struct {
     gpa: std.mem.Allocator,
     ports: []const PortEntry,
+    port_index: []u32 = &.{},
+    bridge_index: []i32 = &.{},
     fib: fib.Fib = .{},
     fib6: fib6.Fib = .{},
     arp: arp.Cache = .{},
@@ -437,10 +439,23 @@ pub const Forwarder = struct {
         errdefer self.ndp_misses.deinit(gpa);
         self.storm_limiters = try gpa.alloc(rate.Limiter, ports.len);
         for (self.storm_limiters) |*limiter| limiter.* = rate.Limiter.init(0);
+        self.port_index = try gpa.alloc(u32, ports.len + 1);
+        errdefer gpa.free(self.port_index);
+        @memset(self.port_index, 0);
+        for (ports, 0..) |entry, i| {
+            if (entry.id.value != 0 and entry.id.value <= ports.len) {
+                self.port_index[entry.id.value] = @intCast(i + 1);
+            }
+        }
+        self.bridge_index = try gpa.alloc(i32, ports.len + 1);
+        errdefer gpa.free(self.bridge_index);
+        @memset(self.bridge_index, 0);
         return self;
     }
 
     pub fn deinit(self: *Forwarder) void {
+        if (self.port_index.len != 0) self.gpa.free(self.port_index);
+        if (self.bridge_index.len != 0) self.gpa.free(self.bridge_index);
         self.fib.deinit(self.gpa);
         self.fib6.deinit(self.gpa);
         self.arp.deinit(self.gpa);
@@ -1093,6 +1108,13 @@ pub const Forwarder = struct {
             });
         }
 
+        for (self.bridges.items, 0..) |bridge, bi| {
+            for (bridge.members) |member| {
+                if (member.value != 0 and member.value < self.bridge_index.len) {
+                    self.bridge_index[@intCast(member.value)] = @intCast(bi + 1);
+                }
+            }
+        }
         try self.compileFirewall(cfg);
         return self;
     }
@@ -4506,6 +4528,10 @@ pub const Forwarder = struct {
     }
 
     fn bridgeForPort(self: *const Forwarder, port: types.PortId) ?Bridge {
+        if (port.value != 0 and port.value < self.bridge_index.len) {
+            const slot = self.bridge_index[@intCast(port.value)];
+            if (slot != 0) return self.bridges.items[@intCast(slot - 1)];
+        }
         for (self.bridges.items) |bridge| {
             if (bridge.contains(port)) return bridge;
         }
@@ -4532,10 +4558,10 @@ pub const Forwarder = struct {
     }
 
     fn portById(self: *const Forwarder, id: types.PortId) ?PortEntry {
-        for (self.ports) |entry| {
-            if (entry.id.eql(id)) return entry;
-        }
-        return null;
+        if (id.value == 0 or id.value >= self.port_index.len) return null;
+        const slot = self.port_index[id.value];
+        if (slot == 0) return null;
+        return self.ports[slot - 1];
     }
 };
 
