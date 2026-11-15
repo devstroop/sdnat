@@ -1,6 +1,6 @@
 # SDNAT
 
-A programmable virtual network implemented in Zig 0.16.x.
+A programmable SDN implemented in Zig 0.16.x.
 
 SDNAT attaches network interfaces, forwards Ethernet, IPv4 and IPv6 traffic,
 and provides NAT, DHCP, DNS, and journal-backed host configuration. It runs as a
