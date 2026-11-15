@@ -45,7 +45,7 @@ jobs:
         run: bash scripts/package.sh --target "${{ matrix.target }}" --out dist --rpm
       - uses: actions/upload-artifact@v4
         with:
-          name: vnet-${{ matrix.arch }}
+          name: sdnat-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
 
@@ -55,7 +55,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: vnet-*
+          pattern: sdnat-*
           merge-multiple: true
           path: dist
       - name: Combine checksums
@@ -65,6 +65,6 @@ jobs:
           cat SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
-          name: vNET ${{ github.ref_name }}
+          name: SDNAT ${{ github.ref_name }}
           generate_release_notes: true
           files: dist/*

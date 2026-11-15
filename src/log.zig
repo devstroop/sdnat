@@ -19,7 +19,7 @@ pub const Logger = struct {
     }
 
     pub fn enabled(self: *const Logger, level: Level) bool {
-        return @intFromEnum(level) >= @intFromEnum(self.level);
+        return @backingInt(level) >= @backingInt(self.level);
     }
 
     pub fn log(self: *const Logger, level: Level, comptime fmt: []const u8, args: anytype) void {

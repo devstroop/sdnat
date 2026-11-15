@@ -1,4 +1,4 @@
-# vNET — Project Plan
+# SDNAT — Project Plan
 
 > Router-first. Linux → Android. No GUI in v1; optional post-v1 web admin.
 > Zig 0.16.x.
@@ -31,11 +31,11 @@ follow.
 - [x] Cross-compile smoke: `x86_64-linux`, `aarch64-linux`,
       `aarch64-linux-android`, `arm-linux-androideabi`.
 - [x] `std.Io` wiring (`io.zig`), leveled logging (`log.zig`), error taxonomy.
-- [x] Config schema + strict parser + validation + `vnet validate`.
+- [x] Config schema + strict parser + validation + `sdnat validate`.
 - [x] `Port` vtable + in-memory port + buffer pool + golden-frame harness.
 - [x] ADR-001…006.
 
-**Exit (met):** unit tests green; `vnet validate` accepts the example configs
+**Exit (met):** unit tests green; `sdnat validate` accepts the example configs
 and rejects unknown fields; all four targets compile.
 
 ### R1 — Ports and platform spine (2–3 weeks) — COMPLETE
@@ -46,11 +46,11 @@ and rejects unknown fields; all four targets compile.
 - [x] rtnetlink: enumerate links, monitor link/addr/neigh events.
 - [x] Port manager: stable IDs, hotplug refresh, MTU; admin up/down via the
       `Port` API.
-- [x] `vnet port list`, `vnet status`, `vnet selftest`, `vnetd` skeleton.
+- [x] `sdnat port list`, `sdnat status`, `sdnat selftest`, `sdnatd` skeleton.
 - [x] netns smoke: veth L2 forwarding, TUN/TAP, status, daemon hotplug.
 
 **Exit (met):** `scripts/test_netns.sh` moves frames across two veth pairs,
-creates TUN/TAP devices, and observes a link event through `vnetd`.
+creates TUN/TAP devices, and observes a link event through `sdnatd`.
 
 ### R2 — IPv4 forwarding (3–4 weeks)
 
@@ -63,8 +63,8 @@ creates TUN/TAP devices, and observes a link event through `vnetd`.
 - [x] Forwarding pipeline: TTL, IPv4/TCP/UDP checksums, ICMP
       unreachable/time-exceeded/frag-needed, egress MTU; non-DF fragmentation
       is deferred.
-- [x] Interface addressing (`vnet iface set|del|up|down`) with journal.
-- [x] Route management (`vnet route add|del`) with journal and ownership
+- [x] Interface addressing (`sdnat iface set|del|up|down`) with journal.
+- [x] Route management (`sdnat route add|del`) with journal and ownership
       checks.
 - [x] L3/TUN ingress and egress: bare IPv4, local echo/ICMP errors, forwarding
       to/from L2, pending-packet flush (`scripts/test_tun.sh`).
@@ -77,7 +77,7 @@ periodic neighbor refresh, and fragmentation of non-DF packets (PMTUD via
 ICMP frag-needed is implemented). None block the exit criterion.
 
 **Exit (met):** Static IPv4 routing between two subnets works in netns;
-`vnet down` restores journaled state.
+`sdnat down` restores journaled state.
 
 ### R3 — NAT and conntrack (3–4 weeks)
 
@@ -90,9 +90,9 @@ ICMP frag-needed is implemented). None block the exit criterion.
       RFC 1624 quoted-L4 checksum adjustment).
 - [x] Incremental RFC 1624 checksum updates for ordinary NAT rewrites; offload
       repair runs once before NAT (ADR-007, ADR-014).
-- [x] `vnet nat list`, `vnet conntrack list` (read-only, via the R7 control
+- [x] `sdnat nat list`, `sdnat conntrack list` (read-only, via the R7 control
       socket).
-- [x] `vnet nat add|del …` write verbs backed by atomic config saves and
+- [x] `sdnat nat add|del …` write verbs backed by atomic config saves and
       the `nat.apply` control operation (ADR-014).
 - [x] Exhaustion/limit behavior + counters.
 - [x] netns matrix: SNAT TCP/UDP/ICMP, DNAT/hairpin, SNAT/DNAT ICMP-error
@@ -106,7 +106,7 @@ mutations and incremental rewrites are in the datapath (`src/nat/`,
 binds. Fragments and unrelated or non-echo ICMP on SNAT egress are dropped
 (counted) rather than leaked.
 
-**Exit:** LAN hosts reach an external network through vNET's NAT; inbound port
+**Exit:** LAN hosts reach an external network through SDNAT's NAT; inbound port
 forward works; conntrack survives 1 h churn (validated in R9a).
 
 ### R4 — DHCP + DNS services (3–4 weeks)
@@ -118,18 +118,18 @@ forward works; conntrack survives 1 h churn (validated in R9a).
       masquerade installation).
 - [x] DNS forwarder: UDP/TCP, TTL cache, negative cache, upstream pool.
 - [x] DNS TCP listener/upstream fallback, split zones, local status zone.
-- [x] `vnet dhcp status`, `vnet dns query` (offline, read lease DB / send query).
+- [x] `sdnat dhcp status`, `sdnat dns query` (offline, read lease DB / send query).
 - [x] netns tests: `scripts/test_dhcp.sh` (lease, ping, persistence) and
       `scripts/test_dns.sh` (query + cache hit).
 
 **Status: COMPLETE.** The DHCP server is integrated into the forwarding path
 (no kernel socket), probes candidates before OFFER, uses option 61 client-id
 as the lease identity when present, and persists leases when `lease_db` is
-configured. DNS serves TCP, split zones and a local `vnet.` / `router.vnet.`
-status zone. `vnetd` does not apply interface addresses, so DNS requires the
-listen address to exist (use `vnet iface set` first).
+configured. DNS serves TCP, split zones and a local `sdnat.` / `router.sdnat.`
+status zone. `sdnatd` does not apply interface addresses, so DNS requires the
+listen address to exist (use `sdnat iface set` first).
 
-**Exit:** `vnet` is a usable travel/home router on Linux: uplink DHCP, LAN
+**Exit:** `sdnat` is a usable travel/home router on Linux: uplink DHCP, LAN
 DHCP + DNS + NAT.
 
 ### R5 — L2 bridge (3–4 weeks)
@@ -142,12 +142,12 @@ DHCP + DNS + NAT.
 - [x] Storm control and loop protection (per-port flooded-frame limit).
 - [x] Optional STP 802.1D (root election, BPDU exchange, port states).
 - [x] Optional Linux kernel-bridge offload backend (kernel bridge + veth trunk).
-- [x] `vnet bridge list` inspection CLI (membership, PVID/tagged, SVI).
+- [x] `sdnat bridge list` inspection CLI (membership, PVID/tagged, SVI).
 
 **Status: COMPLETE.** Userspace FDB learning/aging/flooding, broadcast and
 multicast handling, per-VLAN FDB keys, PVID/tagged/access semantics, VLAN
 filtering and offload tag recovery are implemented and covered by a veth
-access/trunk netns test; `vnet bridge list` renders membership and SVIs.
+access/trunk netns test; `sdnat bridge list` renders membership and SVIs.
 Per-port storm control (broadcast/multicast/unknown-unicast) is enforced in the
 bridge datapath. Userspace STP and the optional Linux kernel-bridge backend are
 implemented; the latter uses a journaled kernel bridge plus one veth trunk per
@@ -162,15 +162,15 @@ kernel offload produces the same result. `scripts/test_offload.sh` covers both.
 - [x] Default-deny inbound/forward; established/related shortcut.
 - [x] Anti-spoofing (uRPF-lite, `firewall.rp_filter`).
 - [x] ICMP/ARP/DHCP rate limits.
-- [x] `vnet firewall test`; per-rule counters exported at runtime.
+- [x] `sdnat firewall test`; per-rule counters exported at runtime.
 - [x] Tests: ordering, shadowing, state transitions.
 
 **Status: COMPLETE.** Ordered first-match rules support `proto`, `src`,
 `dst`, `sport`, `dport`, `iif`/`oif` (port, interface or bridge), actions
 `accept`/`drop`/`reject` and `ct_state`; established traffic from conntrack is
-accepted when no rule matches. `vnet firewall list` renders the compiled order;
-`vnet firewall test` evaluates a synthetic packet; `vnet firewall counters`
-reads the periodic counter snapshot written by `vnetd`. Strict uRPF-lite is
+accepted when no rule matches. `sdnat firewall list` renders the compiled order;
+`sdnat firewall test` evaluates a synthetic packet; `sdnat firewall counters`
+reads the periodic counter snapshot written by `sdnatd`. Strict uRPF-lite is
 enforced when `firewall.rp_filter` is enabled and ICMP/ARP/DHCP rate limits
 are configurable.
 
@@ -179,12 +179,12 @@ suites.
 
 ### R7 — Android VPN mode (3–4 weeks)
 
-- [x] C ABI (`vnet_create`, `set_port_fd`, events, status), injected-fd L3
+- [x] C ABI (`sdnat_create`, `set_port_fd`, events, status), injected-fd L3
   port, shared service lifecycle, and C header/link smoke test.
 - [x] Linux control socket: one-request JSON protocol, read-only
-  `status`/`nat.list`/`conntrack.list`, `vnet up`/`doctor`/`nat list`/
+  `status`/`nat.list`/`conntrack.list`, `sdnat up`/`doctor`/`nat list`/
   `conntrack list`, a run-dir lock that rejects a second daemon, serialized
-  `vnet up` starts, and daemon stderr captured in `<state_dir>/vnetd.log`.
+  `sdnat up` starts, and daemon stderr captured in `<state_dir>/sdnatd.log`.
 - [ ] JNI bridge.
 - [ ] Proxy NAT backend (TCP/UDP/ICMP over protected sockets).
 - [ ] Host `VpnService`: Builder, MTU 1380, routes, DNS, per-app split tunnel.
@@ -192,7 +192,7 @@ suites.
 - [ ] Network-change handling + reconnect.
 - [ ] Emulator tests; physical device smoke.
 
-**Exit:** Apps under the VPN reach the internet through vNET's NAT; split
+**Exit:** Apps under the VPN reach the internet through SDNAT's NAT; split
 tunnel works; survives Wi-Fi↔LTE.
 
 ### R8 — Android root router mode (3–4 weeks)
@@ -200,13 +200,13 @@ tunnel works; survives Wi-Fi↔LTE.
 - [ ] Capability probe (`su`, AF_PACKET, netlink, iptables/nft, SELinux).
 - [ ] Root helper start/stop; journal + rollback.
 - [ ] Raw ports on `wlan0`/`ap0`/`usb0`/`rmnet*`; TUN/TAP.
-- [ ] Tethering takeover (Strategy 1): forwarding + vNET NAT/firewall rules,
+- [ ] Tethering takeover (Strategy 1): forwarding + SDNAT NAT/firewall rules,
       restore on exit.
 - [ ] Experimental NFQUEUE interception (Strategy 2) behind a flag.
 - [ ] Hotspot + USB tethering tests with a real client.
 
-**Exit:** A tethered laptop gets DHCP from vNET and reaches the internet
-through vNET's NAT; uninstall/stop restores tethering.
+**Exit:** A tethered laptop gets DHCP from SDNAT and reaches the internet
+through SDNAT's NAT; uninstall/stop restores tethering.
 
 ### R9a — Linux hardening and 0.2.0 (2–3 weeks)
 
@@ -215,7 +215,7 @@ and packaged without waiting for host integration.
 
 - [x] IPv6 forwarding + NDP (ADR-013); RA/DHCPv6 deferred to v1.1.
 - [ ] Fuzzing: all parsers 72 h clean; CI fuzz smoke.
-- [x] Crash/kill -9 recovery tests; journal replay; `vnet doctor --repair`.
+- [x] Crash/kill -9 recovery tests; journal replay; `sdnat doctor --repair`.
 - [ ] Performance: hit budgets in CORE-SCOPE §12 on a named reference host.
 - [ ] 24 h soak with flaps, live NAT edits and service restarts.
 - [ ] Packaging: `.deb`/`.rpm`/AppImage, systemd unit and release workflow.
@@ -223,13 +223,13 @@ and packaged without waiting for host integration.
 - [ ] v0.2.0 Linux preview.
 
 **Status (partial):** `scripts/perf.sh`, `scripts/soak.sh`,
-`scripts/package.sh`, `packaging/vnetd.service`, the release workflow and the
+`scripts/package.sh`, `packaging/sdnatd.service`, the release workflow and the
 quickstart/troubleshooting/performance/release guides are landed. The remaining
 boxes are open because the 64 B packet-rate budget, 24 h soak and 72 h fuzz
 evidence, the AppImage artifact, and a tagged 0.2.0 release are not complete.
 
 **Exit:** A fresh package install passes the quickstart; the 24 h soak,
-performance budgets and fuzz campaign are green; `vnet down` restores the
+performance budgets and fuzz campaign are green; `sdnat down` restores the
 host.
 
 ### R9b — Android release and v1.0 (1–2 weeks after R7/R8)
@@ -252,7 +252,7 @@ Remaining R10 work is authorization scopes, Playwright coverage, generated
 deployment packaging and the remaining P2 follow-ups (live firewall
 apply/reorder and advanced settings).
 
-- [ ] `vnetweb`: unprivileged Unix-socket client, Zig HTTP server,
+- [ ] `sdnatweb`: unprivileged Unix-socket client, Zig HTTP server,
       server-rendered HTMX 4.0.0 with embedded assets; no Node build step, no
       CDN, no runtime asset directory.
 - [ ] P0: `ConfigStore`, protocol v3 with request-versioned v2 responses,
@@ -308,10 +308,10 @@ v1 CLI/API behavior is unchanged.
 | 2 | CI matrix + cross-compile | Green CI |
 | 3 | ADR-001…004 | Decisions locked |
 | 4–5 | `io.zig`, logging, error taxonomy | Core plumbing |
-| 6–7 | Config schema + strict parser + `vnet validate` | Config works |
+| 6–7 | Config schema + strict parser + `sdnat validate` | Config works |
 | 8–9 | Port vtable + memory port + golden packets | Test harness |
 | 10–12 | Linux TUN + AF_PACKET open/read/write | Ports work |
-| 13–14 | netns echo test + `vnet port list` | R1 demo |
+| 13–14 | netns echo test + `sdnat port list` | R1 demo |
 
 ## 5. Risks
 
@@ -371,5 +371,5 @@ v1 CLI/API behavior is unchanged.
 | 14 | Config-backed live NAT updates | Accepted — ADR-014 |
 | 15 | Protocol v3 and crash-consistent config apply | Proposed — ADR-015 (R10) |
 | 16 | Network model and staged configuration | Accepted — ADR-016 (web preview) |
-| 17 | Rename vRouter to vNET | Accepted — ADR-017 |
+| 17 | Rename vRouter to SDNAT | Accepted — ADR-017 |
 | 18 | Named shard build graph | Accepted — ADR-018 (phase 1) |

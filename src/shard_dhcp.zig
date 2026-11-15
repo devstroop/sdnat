@@ -1,4 +1,4 @@
-//! vnet-dhcp: DHCPv4 wire format, server and lease persistence.
+//! sdnat-dhcp: DHCPv4 wire format, server and lease persistence.
 
 pub const message = @import("services/dhcp/message.zig");
 pub const server = @import("services/dhcp/server.zig");

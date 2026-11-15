@@ -3,8 +3,8 @@
 //! write through the existing Unix control socket.
 
 const std = @import("std");
-const core = @import("vnet-core");
-const ctl = @import("vnet-ctl");
+const core = @import("sdnat-core");
+const ctl = @import("sdnat-ctl");
 const auth = @import("auth.zig");
 const assets = @import("assets.zig");
 const html = @import("html.zig");
@@ -12,7 +12,7 @@ const pages = @import("pages.zig");
 const operations = @import("operations.zig");
 const protocol = ctl.protocol;
 
-const cookie_name = "vnet_session";
+const cookie_name = "sdnat_session";
 const max_body = 65536;
 const max_password_len = 256;
 const login_max_failures = 5;
@@ -25,7 +25,7 @@ pub const Options = struct {
     io: std.Io,
     gpa: std.mem.Allocator,
     listen: []const u8 = "127.0.0.1:8080",
-    control_path: []const u8 = "/run/vnet/control.sock",
+    control_path: []const u8 = "/run/sdnat/control.sock",
     password_phc: []const u8,
     session_ttl_ms: i64 = auth.default_session_ttl_ms,
 };
@@ -49,7 +49,7 @@ pub fn run(options: Options) !void {
     var listener = try address.listen(options.io, .{ .reuse_address = true });
     defer listener.deinit(options.io);
 
-    std.log.info("vnet-web listening on {s} (control {s})", .{ options.listen, options.control_path });
+    std.log.info("sdnat-web listening on {s} (control {s})", .{ options.listen, options.control_path });
     while (true) {
         const stream = try listener.accept(options.io);
         app.handleConnection(stream) catch |err| {
@@ -1163,9 +1163,9 @@ const App = struct {
         if (apply_response.value.restart_required orelse false) {
             self.rememberRestartResponse(&apply_response.value);
             const notice = if (apply_response.value.restart_token != null)
-                "DHCP configuration saved. Restart vnetd to activate it."
+                "DHCP configuration saved. Restart sdnatd to activate it."
             else
-                "DHCP configuration saved. Run systemctl restart vnetd to activate it.";
+                "DHCP configuration saved. Run systemctl restart sdnatd to activate it.";
             return self.renderDhcpApplied(request, csrf[0..], allocator, notice);
         }
         self.clearRestartToken();
@@ -1524,9 +1524,9 @@ const App = struct {
         if (apply_response.value.restart_required orelse false) {
             self.rememberRestartResponse(&apply_response.value);
             const notice = if (apply_response.value.restart_token != null)
-                "DNS configuration saved. Restart vnetd to activate it."
+                "DNS configuration saved. Restart sdnatd to activate it."
             else
-                "DNS configuration saved. Run systemctl restart vnetd to activate it.";
+                "DNS configuration saved. Run systemctl restart sdnatd to activate it.";
             return self.renderDnsApplied(request, csrf[0..], allocator, notice);
         }
         self.clearRestartToken();
@@ -2000,9 +2000,9 @@ const App = struct {
         if (apply_response.value.restart_required orelse false) {
             self.rememberRestartResponse(&apply_response.value);
             const notice = if (apply_response.value.restart_token != null)
-                "Interface configuration saved. Restart vnetd to activate it."
+                "Interface configuration saved. Restart sdnatd to activate it."
             else
-                "Interface configuration saved. Run systemctl restart vnetd to activate it.";
+                "Interface configuration saved. Run systemctl restart sdnatd to activate it.";
             return self.renderInterfacesApplied(request, csrf[0..], allocator, notice);
         }
         self.clearRestartToken();
@@ -2417,9 +2417,9 @@ const App = struct {
         if (apply_response.value.restart_required orelse false) {
             self.rememberRestartResponse(&apply_response.value);
             const notice = if (apply_response.value.restart_token != null)
-                "Route configuration saved. Restart vnetd to activate it."
+                "Route configuration saved. Restart sdnatd to activate it."
             else
-                "Route configuration saved. Run systemctl restart vnetd to activate it.";
+                "Route configuration saved. Run systemctl restart sdnatd to activate it.";
             return self.renderRoutesApplied(request, csrf[0..], allocator, notice);
         }
         self.clearRestartToken();
@@ -2651,9 +2651,9 @@ const App = struct {
         if (apply_response.value.restart_required orelse false) {
             self.rememberRestartResponse(&apply_response.value);
             const notice = if (apply_response.value.restart_token != null)
-                "Firewall configuration saved. Restart vnetd to activate it."
+                "Firewall configuration saved. Restart sdnatd to activate it."
             else
-                "Firewall configuration saved. Run systemctl restart vnetd to activate it.";
+                "Firewall configuration saved. Run systemctl restart sdnatd to activate it.";
             return self.renderFirewallApplied(request, csrf[0..], allocator, notice);
         }
         self.clearRestartToken();
@@ -2940,9 +2940,9 @@ const App = struct {
             restart_supported = self.restart_supported;
             restart_token = self.restartToken() orelse "";
             notice = if (apply_response.value.restart_token != null)
-                "Logging configuration saved. Restart vnetd to activate it."
+                "Logging configuration saved. Restart sdnatd to activate it."
             else
-                "Logging configuration saved. Run systemctl restart vnetd to activate it.";
+                "Logging configuration saved. Run systemctl restart sdnatd to activate it.";
         } else {
             self.clearRestartToken();
         }
@@ -3105,7 +3105,7 @@ const App = struct {
         self.restart_pending = false;
         return self.respondRestartResult(
             request,
-            "Restart accepted. vnetd is stopping cleanly and will come back up; refresh in a few seconds.",
+            "Restart accepted. sdnatd is stopping cleanly and will come back up; refresh in a few seconds.",
             false,
         );
     }
@@ -3151,7 +3151,7 @@ const App = struct {
         self.restart_pending = false;
         return self.respondStopResult(
             request,
-            "Stop accepted. vnetd is shutting down; forwarding stops and this page will disconnect. Start it again with your service manager.",
+            "Stop accepted. sdnatd is shutting down; forwarding stops and this page will disconnect. Start it again with your service manager.",
             false,
         );
     }

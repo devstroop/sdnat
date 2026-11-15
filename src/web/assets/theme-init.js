@@ -1,6 +1,6 @@
 (() => {
   try {
-    const saved = localStorage.getItem("vnet-theme");
+    const saved = localStorage.getItem("sdnat-theme");
     if (saved === "light" || saved === "dark") {
       document.documentElement.dataset.theme = saved;
     }

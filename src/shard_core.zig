@@ -1,4 +1,4 @@
-//! vnet-core: shared types, errors, I/O, logging and configuration.
+//! sdnat-core: shared types, errors, I/O, logging and configuration.
 
 pub const types = @import("types.zig");
 pub const errors = @import("errors.zig");
@@ -16,7 +16,7 @@ pub const Config = config_schema.Config;
 pub const PortId = types.PortId;
 pub const ConfigError = errors.ConfigError;
 pub const PortError = errors.PortError;
-pub const VnetError = errors.VnetError;
+pub const SdnatError = errors.SdnatError;
 
 test {
     _ = types;

@@ -1,4 +1,4 @@
-//! vnet-port: port vtable, buffer pools and platform port implementations.
+//! sdnat-port: port vtable, buffer pools and platform port implementations.
 
 const builtin = @import("builtin");
 

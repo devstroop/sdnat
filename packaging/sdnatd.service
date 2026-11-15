@@ -1,22 +1,22 @@
 [Unit]
-Description=vNET virtual router
-Documentation=file:/usr/share/doc/vnet/QUICKSTART.md
+Description=SDNAT virtual router
+Documentation=file:/usr/share/doc/sdnat/QUICKSTART.md
 Wants=network-pre.target
 After=network-pre.target systemd-sysctl.service
-ConditionPathExists=/etc/vnet/vnet.json
+ConditionPathExists=/etc/sdnat/sdnat.json
 StartLimitBurst=5
 StartLimitIntervalSec=60
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/vnetd -c /etc/vnet/vnet.json
+ExecStart=/usr/bin/sdnatd -c /etc/sdnat/sdnat.json
 Restart=on-failure
 RestartSec=2s
-RuntimeDirectory=vnet
+RuntimeDirectory=sdnat
 RuntimeDirectoryMode=0750
-StateDirectory=vnet
+StateDirectory=sdnat
 StateDirectoryMode=0750
-ConfigurationDirectory=vnet
+ConfigurationDirectory=sdnat
 UMask=0077
 LimitNOFILE=65536
 

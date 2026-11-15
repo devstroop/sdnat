@@ -25,16 +25,16 @@ case "${1:-}" in
     -h|--help) show_usage; exit 0 ;;
 esac
 
-if [ "${VNET_PERF_NETNS:-0}" != "1" ]; then
+if [ "${SDNAT_PERF_NETNS:-0}" != "1" ]; then
     ZIG="${ZIG:-zig}"
     command -v "$ZIG" >/dev/null 2>&1 || {
         echo "FAIL: zig not found (set ZIG=/path/to/zig)" >&2
         exit 1
     }
     if [ "${EUID}" -eq 0 ]; then
-        exec unshare -n env VNET_PERF_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+        exec unshare -n env SDNAT_PERF_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
     fi
-    exec unshare -rn env VNET_PERF_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+    exec unshare -rn env SDNAT_PERF_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
 fi
 
 ZIG="${ZIG:-zig}"
@@ -47,8 +47,8 @@ WORK="$(mktemp -d)"
 BIN="$ROOT/zig-out/bin"
 LOADGEN="$WORK/loadgen"
 OFFLOAD_HELPER="$WORK/netdev_offload"
-CFG="$WORK/vnet-perf.json"
-LOG="$WORK/vnetd.log"
+CFG="$WORK/sdnat-perf.json"
+LOG="$WORK/sdnatd.log"
 SCENARIO="all"
 DURATION="5"
 TCP_BYTES="268435456"
@@ -118,7 +118,7 @@ cleanup_scenario() {
     stop_pid "$pidB"; pidB=""
     ip link del ra 2>/dev/null || true
     ip link del rb 2>/dev/null || true
-    rm -rf "${VNET_RUN_DIR:-}" 2>/dev/null || true
+    rm -rf "${SDNAT_RUN_DIR:-}" 2>/dev/null || true
 }
 
 cleanup() {
@@ -139,7 +139,7 @@ if [ "$DO_BUILD" = "1" ]; then
     log "build release"
     (cd "$ROOT" && "$ZIG" build --release=fast) || die "build failed"
 fi
-[ -x "$BIN/vnetd" ] || die "missing $BIN/vnetd (run without --no-build)"
+[ -x "$BIN/sdnatd" ] || die "missing $BIN/sdnatd (run without --no-build)"
 cc -O2 -std=c11 -Wall -Wextra -Werror -o "$LOADGEN" "$ROOT/scripts/loadgen.c" ||
     die "failed to build loadgen"
 cc -O2 -std=c11 -Wall -Wextra -Werror -o "$OFFLOAD_HELPER" "$ROOT/scripts/netdev_offload.c" ||
@@ -273,26 +273,26 @@ EOF
     esac
 }
 
-start_vnetd() {
+start_sdnatd() {
     local scenario="$1"
-    VNET_RUN_DIR="$WORK/run-$scenario"
-    export VNET_RUN_DIR
-    rm -rf "$VNET_RUN_DIR"
+    SDNAT_RUN_DIR="$WORK/run-$scenario"
+    export SDNAT_RUN_DIR
+    rm -rf "$SDNAT_RUN_DIR"
     : >"$LOG"
     write_config "$scenario"
-    "$BIN/vnet" validate "$CFG" >/dev/null || die "config validation failed"
-    "$BIN/vnetd" -c "$CFG" >"$LOG" 2>&1 &
+    "$BIN/sdnat" validate "$CFG" >/dev/null || die "config validation failed"
+    "$BIN/sdnatd" -c "$CFG" >"$LOG" 2>&1 &
     vpid=$!
     for _ in $(seq 1 100); do
         grep -q "started instance" "$LOG" && return 0
         if ! kill -0 "$vpid" 2>/dev/null; then
             cat "$LOG" >&2
-            die "vnetd exited"
+            die "sdnatd exited"
         fi
         sleep 0.02
     done
     cat "$LOG" >&2
-    die "vnetd did not start"
+    die "sdnatd did not start"
 }
 
 warmup() {
@@ -373,7 +373,7 @@ run_scenario() {
     local scenario="$1"
     log "scenario $scenario"
     start_topology "$scenario"
-    start_vnetd "$scenario"
+    start_sdnatd "$scenario"
     warmup
     log "$scenario udp 64B"
     run_udp "$scenario-udp64" 64 5201

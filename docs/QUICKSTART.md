@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide runs vNET as a Linux router with two packet ports, a LAN DHCP
+This guide runs SDNAT as a Linux router with two packet ports, a LAN DHCP
 server and source NAT on the uplink. Replace `eth0`/`eth1` with your devices.
 
 ## Requirements
@@ -17,32 +17,32 @@ zig build --release=fast
 zig build test
 ```
 
-The binaries are `zig-out/bin/vnet` and `zig-out/bin/vnetd`. The release
+The binaries are `zig-out/bin/sdnat` and `zig-out/bin/sdnatd`. The release
 package installs the same files under `/usr/bin`.
 
 ## Install a package
 
 ```sh
-sudo apt install ./vnet_0.2.0_amd64.deb
-# or: sudo rpm -i vnet-0.2.0-1.x86_64.rpm
-# or unpack dist/vnet-0.2.0-linux-amd64.tar.gz over /
+sudo apt install ./sdnat_0.2.0_amd64.deb
+# or: sudo rpm -i sdnat-0.2.0-1.x86_64.rpm
+# or unpack dist/sdnat-0.2.0-linux-amd64.tar.gz over /
 ```
 
 The package installs the systemd unit but does not start the daemon until
-`/etc/vnet/vnet.json` exists:
+`/etc/sdnat/sdnat.json` exists:
 
 ```sh
-sudo cp /etc/vnet/vnet.json.example /etc/vnet/vnet.json
-sudoedit /etc/vnet/vnet.json
-sudo vnet validate /etc/vnet/vnet.json
-sudo systemctl enable --now vnetd
+sudo cp /etc/sdnat/sdnat.json.example /etc/sdnat/sdnat.json
+sudoedit /etc/sdnat/sdnat.json
+sudo sdnat validate /etc/sdnat/sdnat.json
+sudo systemctl enable --now sdnatd
 ```
 
 Check it:
 
 ```sh
-sudo vnet status -c /etc/vnet/vnet.json
-sudo journalctl -u vnetd -f
+sudo sdnat status -c /etc/sdnat/sdnat.json
+sudo journalctl -u sdnatd -f
 ```
 
 ## Example configuration
@@ -79,14 +79,14 @@ add a default route in the configuration.
 ## Run from the build tree
 
 ```sh
-./zig-out/bin/vnet validate examples/minimal.json
-sudo ./zig-out/bin/vnetd -c examples/minimal.json
+./zig-out/bin/sdnat validate examples/minimal.json
+sudo ./zig-out/bin/sdnatd -c examples/minimal.json
 ```
 
 Use a second terminal:
 
 ```sh
-sudo ./zig-out/bin/vnet status -c examples/minimal.json
+sudo ./zig-out/bin/sdnat status -c examples/minimal.json
 ```
 
 ## Move a port to a bridge
@@ -114,18 +114,18 @@ logical interface attached to the bridge:
 Normal stop:
 
 ```sh
-sudo systemctl stop vnetd
+sudo systemctl stop sdnatd
 ```
 
 If the daemon crashed or was killed, replay the journal:
 
 ```sh
-sudo vnet doctor -c /etc/vnet/vnet.json
-sudo vnet doctor --repair -c /etc/vnet/vnet.json
+sudo sdnat doctor -c /etc/sdnat/sdnat.json
+sudo sdnat doctor --repair -c /etc/sdnat/sdnat.json
 ```
 
-`vnet down` is the CLI teardown path when no daemon is running. Always inspect
-`vnet journal` before repairing an unfamiliar system.
+`sdnat down` is the CLI teardown path when no daemon is running. Always inspect
+`sdnat journal` before repairing an unfamiliar system.
 
 ## Next steps
 

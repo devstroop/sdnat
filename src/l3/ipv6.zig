@@ -3,7 +3,7 @@
 //! with strict bounds checks so malformed chains cannot loop or over-read.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 
 pub const Protocol = struct {
     pub const hop_by_hop: u8 = 0;

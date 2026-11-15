@@ -1,4 +1,4 @@
-//! vnet-l3: packet parsing, routing tables, neighbor discovery and ICMP.
+//! sdnat-l3: packet parsing, routing tables, neighbor discovery and ICMP.
 //! The forwarding engine remains in the composition layer until phase 2.
 
 pub const ipv4 = @import("l3/ipv4.zig");

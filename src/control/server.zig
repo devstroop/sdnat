@@ -3,23 +3,23 @@
 
 const std = @import("std");
 const linux = std.os.linux;
-const core = @import("vnet-core");
+const core = @import("sdnat-core");
 const config_parse = core.config_parse;
-const config_store = @import("vnet-core").config_store;
+const config_store = @import("sdnat-core").config_store;
 const config_apply = @import("config_apply.zig");
 const control_host = @import("host.zig");
-const dns_probe = @import("vnet-dns").probe;
+const dns_probe = @import("sdnat-dns").probe;
 const transaction = @import("transaction.zig");
 const journal = @import("journal.zig");
 const protocol = @import("protocol.zig");
 const read_model = @import("read_model.zig");
 const firewall_counters = @import("firewall_counters.zig");
-const netlink = @import("vnet-port").linux.netlink;
+const netlink = @import("sdnat-port").linux.netlink;
 const state = @import("state.zig");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 const transport = @import("transport.zig");
 const unix = @import("unix.zig");
-const thread = @import("vnet-thread");
+const thread = @import("sdnat-thread");
 
 pub const max_request_bytes = 64 * 1024;
 pub const max_config_request_bytes = 16 * 1024 * 1024;
@@ -170,9 +170,9 @@ pub const Server = struct {
             cwd.deleteFile(io, path) catch {};
         }
 
-        const permissions: std.Io.File.Permissions = @enumFromInt(
+        const permissions: std.Io.File.Permissions = @fromBackingInt(@intCast(
             @as(std.posix.mode_t, @intCast(options.mode)),
-        );
+        ));
         try cwd.setFilePermissions(io, path, permissions, .{});
         const stat = try cwd.statFile(io, path, .{ .follow_symlinks = false });
         if (stat.kind != .unix_domain_socket) return error.PathOccupied;
@@ -1262,7 +1262,7 @@ pub const Server = struct {
     }
 
     fn handleLogTail(self: *Server, stream: std.Io.net.Stream, request: protocol.Request) void {
-        const path = std.fs.path.join(self.gpa, &.{ self.state_dir, "vnetd.log" }) catch {
+        const path = std.fs.path.join(self.gpa, &.{ self.state_dir, "sdnatd.log" }) catch {
             return self.sendError(stream, request.id, request.op, "internal", "allocation failed");
         };
         defer self.gpa.free(path);
@@ -1830,7 +1830,7 @@ pub const Server = struct {
                 request.id,
                 request.op,
                 "restart_unavailable",
-                "no supervisor is configured; restart vnetd with the service manager",
+                "no supervisor is configured; restart sdnatd with the service manager",
             );
             return;
         }
@@ -1901,7 +1901,7 @@ pub const Server = struct {
                 request.id,
                 request.op,
                 "restart_unavailable",
-                "no supervisor is configured; stop vnetd with the service manager",
+                "no supervisor is configured; stop sdnatd with the service manager",
             );
             return;
         }
@@ -2499,10 +2499,10 @@ test "server starts, answers status, and removes its socket" {
     snapshot.conntrack_total = 1;
 
     try tmp.dir.writeFile(testing.io, .{
-        .sub_path = "vnet.json",
+        .sub_path = "sdnat.json",
         .data = "{\n  \"version\": 1,\n  \"instance\": \"test\",\n  \"ports\": {\"lan\": {\"kind\": \"l2\", \"device\": \"eth0\"}}\n}\n",
     });
-    const config_path = try std.fmt.allocPrint(testing.allocator, "{s}/vnet.json", .{path_buf[0..dir]});
+    const config_path = try std.fmt.allocPrint(testing.allocator, "{s}/sdnat.json", .{path_buf[0..dir]});
     defer testing.allocator.free(config_path);
     var store = try config_store.Store.open(testing.io, testing.allocator, config_path);
     defer store.deinit();
@@ -2692,7 +2692,7 @@ test "server starts, answers status, and removes its socket" {
     defer testing.allocator.free(first_revision);
 
     try tmp.dir.writeFile(testing.io, .{
-        .sub_path = "vnet.json",
+        .sub_path = "sdnat.json",
         .data = "{\"version\":1,\"instance\":\"test\",\"changed\":true}\n",
     });
     const refreshed_status_line = try sendRequest(
@@ -2777,8 +2777,8 @@ test "server diffs, applies and audits a config proposal" {
     const proposed_json =
         \\{"version":1,"instance":"test","ports":{"lan":{"kind":"l2","device":"eth0"}},"log":{"level":"debug"}}
     ;
-    try tmp.dir.writeFile(testing.io, .{ .sub_path = "vnet.json", .data = current_json });
-    const config_path = try std.fmt.allocPrint(testing.allocator, "{s}/vnet.json", .{state_dir});
+    try tmp.dir.writeFile(testing.io, .{ .sub_path = "sdnat.json", .data = current_json });
+    const config_path = try std.fmt.allocPrint(testing.allocator, "{s}/sdnat.json", .{state_dir});
     defer testing.allocator.free(config_path);
     var store = try config_store.Store.open(testing.io, testing.allocator, config_path);
     defer store.deinit();
@@ -2895,8 +2895,8 @@ test "server accepts restart once and audits the operation" {
     const proposed_json =
         \\{"version":1,"instance":"test","ports":{"lan":{"kind":"l2","device":"eth0"}},"log":{"level":"debug"}}
     ;
-    try tmp.dir.writeFile(testing.io, .{ .sub_path = "vnet.json", .data = current_json });
-    const config_path = try std.fmt.allocPrint(testing.allocator, "{s}/vnet.json", .{state_dir});
+    try tmp.dir.writeFile(testing.io, .{ .sub_path = "sdnat.json", .data = current_json });
+    const config_path = try std.fmt.allocPrint(testing.allocator, "{s}/sdnat.json", .{state_dir});
     defer testing.allocator.free(config_path);
     var store = try config_store.Store.open(testing.io, testing.allocator, config_path);
     defer store.deinit();

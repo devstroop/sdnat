@@ -17,7 +17,7 @@
       const next = currentTheme() === "dark" ? "light" : "dark";
       root.dataset.theme = next;
       try {
-        localStorage.setItem("vnet-theme", next);
+        localStorage.setItem("sdnat-theme", next);
       } catch {
         // Ignore storage failures; the current page still switches.
       }

@@ -3,9 +3,9 @@
 const std = @import("std");
 const linux = std.os.linux;
 const sys = @import("linux/sys.zig");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 const port_mod = @import("port.zig");
-const PortError = @import("vnet-core").PortError;
+const PortError = @import("sdnat-core").PortError;
 
 pub const FdPort = struct {
     fd: sys.fd_t,

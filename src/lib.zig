@@ -1,19 +1,19 @@
-//! vNET public Zig API.
+//! SDNAT public Zig API.
 //!
 //! This is the composition root: it re-exports the shard surfaces and wires the
 //! forwarding engine and runtime that are not separate shards yet.
 
 const builtin = @import("builtin");
 
-const core = @import("vnet-core");
-const port_shard = @import("vnet-port");
-const l2_shard = @import("vnet-l2");
-const l3_shard = @import("vnet-l3");
-const conntrack_shard = @import("vnet-conntrack");
-const nat_shard = @import("vnet-nat");
-const dhcp_shard = @import("vnet-dhcp");
-const dns_shard = @import("vnet-dns");
-const ctl_shard = @import("vnet-ctl");
+const core = @import("sdnat-core");
+const port_shard = @import("sdnat-port");
+const l2_shard = @import("sdnat-l2");
+const l3_shard = @import("sdnat-l3");
+const conntrack_shard = @import("sdnat-conntrack");
+const nat_shard = @import("sdnat-nat");
+const dhcp_shard = @import("sdnat-dhcp");
+const dns_shard = @import("sdnat-dns");
+const ctl_shard = @import("sdnat-ctl");
 
 pub const version = core.version;
 

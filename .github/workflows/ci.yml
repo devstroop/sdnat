@@ -29,7 +29,7 @@ jobs:
       - run: zig build
       - run: zig build web
       - run: zig build web-test
-      - run: for f in examples/*.json; do ./zig-out/bin/vnet validate "$f"; done
+      - run: for f in examples/*.json; do ./zig-out/bin/sdnat validate "$f"; done
 
   fuzz:
     runs-on: ubuntu-latest
@@ -91,14 +91,14 @@ jobs:
       - run: bash scripts/package.sh --out dist --rpm
       - run: |
           version="$(sed -n 's/^[[:space:]]*\.version = "\([^"]*\)".*/\1/p' build.zig.zon | head -n1)"
-          test -f "dist/vnet_${version}_amd64.deb"
-          test -f "dist/vnet-${version}-linux-amd64.tar.gz"
-          test -f "dist/vnet-${version}-1.x86_64.rpm"
-          ar t "dist/vnet_${version}_amd64.deb"
-          tar -tzf "dist/vnet-${version}-linux-amd64.tar.gz" >/dev/null
-          rpm -qpl "dist/vnet-${version}-1.x86_64.rpm" >/dev/null
-          tar -xzf "dist/vnet-${version}-linux-amd64.tar.gz" -C /tmp
-          "/tmp/vnet-${version}/usr/bin/vnet" version
+          test -f "dist/sdnat_${version}_amd64.deb"
+          test -f "dist/sdnat-${version}-linux-amd64.tar.gz"
+          test -f "dist/sdnat-${version}-1.x86_64.rpm"
+          ar t "dist/sdnat_${version}_amd64.deb"
+          tar -tzf "dist/sdnat-${version}-linux-amd64.tar.gz" >/dev/null
+          rpm -qpl "dist/sdnat-${version}-1.x86_64.rpm" >/dev/null
+          tar -xzf "dist/sdnat-${version}-linux-amd64.tar.gz" -C /tmp
+          "/tmp/sdnat-${version}/usr/bin/sdnat" version
 
   zig-next:
     runs-on: ubuntu-latest

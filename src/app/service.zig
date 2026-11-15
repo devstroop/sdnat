@@ -1,24 +1,24 @@
-//! Reusable vNET runtime lifecycle shared by `vnetd` and the C ABI.
+//! Reusable SDNAT runtime lifecycle shared by `sdnatd` and the C ABI.
 
 const std = @import("std");
-const schema = @import("vnet-core").config_schema;
-const config_store = @import("vnet-core").config_store;
-const control_transaction = @import("vnet-ctl").transaction;
-const types = @import("vnet-core").types;
-const log = @import("vnet-core").log;
-const manager_mod = @import("vnet-port").manager;
-const port_mod = @import("vnet-port").port;
+const schema = @import("sdnat-core").config_schema;
+const config_store = @import("sdnat-core").config_store;
+const control_transaction = @import("sdnat-ctl").transaction;
+const types = @import("sdnat-core").types;
+const log = @import("sdnat-core").log;
+const manager_mod = @import("sdnat-port").manager;
+const port_mod = @import("sdnat-port").port;
 const forward = @import("../l3/forward.zig");
-const dhcp_leases = @import("vnet-dhcp").leases;
-const dhcp_server = @import("vnet-dhcp").server;
-const dns_service = @import("vnet-dns").service;
-const control_host = @import("vnet-ctl").host;
-const control_offload = @import("vnet-ctl").offload;
-const control_server = @import("vnet-ctl").server;
-const control_protocol = @import("vnet-ctl").protocol;
-const control_state = @import("vnet-ctl").state;
-const firewall_counters = @import("vnet-ctl").firewall_counters;
-const netlink = @import("vnet-port").linux.netlink;
+const dhcp_leases = @import("sdnat-dhcp").leases;
+const dhcp_server = @import("sdnat-dhcp").server;
+const dns_service = @import("sdnat-dns").service;
+const control_host = @import("sdnat-ctl").host;
+const control_offload = @import("sdnat-ctl").offload;
+const control_server = @import("sdnat-ctl").server;
+const control_protocol = @import("sdnat-ctl").protocol;
+const control_state = @import("sdnat-ctl").state;
+const firewall_counters = @import("sdnat-ctl").firewall_counters;
+const netlink = @import("sdnat-port").linux.netlink;
 
 const port_rx_budget = 256;
 const idle_poll_ms = 1;
@@ -39,7 +39,7 @@ pub const Runtime = struct {
 pub const ReadyFn = *const fn (ctx: ?*anyopaque) void;
 
 pub const Options = struct {
-    state_dir: ?[]const u8 = "/run/vnet",
+    state_dir: ?[]const u8 = "/run/sdnat",
     config_store: ?*config_store.Store = null,
     allow_host_changes: bool = true,
     enable_monitor: bool = true,
@@ -99,7 +99,7 @@ pub fn run(
     if (control_offload.isEnabled(cfg)) {
         if (host) |*h| {
             offload_plan = control_offload.apply(io, gpa, h, cfg) catch |err| {
-                logger.err("kernel offload: {s}; run `vnet down -c <config>` to repair", .{
+                logger.err("kernel offload: {s}; run `sdnat down -c <config>` to repair", .{
                     @errorName(err),
                 });
                 return err;
@@ -108,7 +108,7 @@ pub fn run(
                 logger.info("offload bridge={s} kernel={s} trunk={s}", .{
                     .bridge_name = device.bridge_name,
                     .kernel_bridge = device.kernel_bridge,
-                    .veth_vnet = device.veth_vnet,
+                    .veth_sdnat = device.veth_sdnat,
                 });
             }
             for (offload_plan.skipped) |port_name| {
@@ -216,7 +216,7 @@ pub fn run(
             .zones = if (dns_zones) |zones| zones else &.{},
         }) catch |err| {
             logger.err(
-                "dns listen={f}: {s}; assign the address first with `vnet iface set <dev> <cidr>`",
+                "dns listen={f}: {s}; assign the address first with `sdnat iface set <dev> <cidr>`",
                 .{ listen, @errorName(err) },
             );
             return err;

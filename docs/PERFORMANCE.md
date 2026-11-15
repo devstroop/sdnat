@@ -16,14 +16,14 @@ frequency-pinned host before using these numbers for a release decision.
 
 ## Method
 
-`scripts/perf.sh` creates two hosts and a vNET instance in a fresh netns:
+`scripts/perf.sh` creates two hosts and a SDNAT instance in a fresh netns:
 
 ```
-host A 10.0.1.2/24 -- veth -- vnet lan0 10.0.1.1/24
+host A 10.0.1.2/24 -- veth -- sdnat lan0 10.0.1.1/24
                                       |
                               L3 forward / L2 bridge / SNAT
                                       |
-host B 10.0.2.2/24 -- veth -- vnet wan0 10.0.2.1/24
+host B 10.0.2.2/24 -- veth -- sdnat wan0 10.0.2.1/24
 ```
 
 The script disables TX checksum, GSO, TSO and GRO on the synthetic host veths

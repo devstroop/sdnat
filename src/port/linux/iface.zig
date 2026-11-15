@@ -6,8 +6,8 @@
 const std = @import("std");
 const linux = std.os.linux;
 const sys = @import("sys.zig");
-const types = @import("vnet-core").types;
-const PortError = @import("vnet-core").PortError;
+const types = @import("sdnat-core").types;
+const PortError = @import("sdnat-core").PortError;
 
 const IFF_UP: u16 = 0x1;
 const ARPHRD_ETHER: u16 = 1;

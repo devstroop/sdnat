@@ -3,10 +3,10 @@
 //! router address, so it never shares the AF_PACKET datapath.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 const message = @import("message.zig");
 const cache_mod = @import("cache.zig");
-const thread = @import("vnet-thread");
+const thread = @import("sdnat-thread");
 
 pub const Zone = struct {
     suffix: []const u8,
@@ -438,7 +438,7 @@ fn asciiLower(c: u8) u8 {
 }
 
 fn isLocalZone(qname: []const u8) bool {
-    return asciiEql(qname, "vnet") or asciiEql(qname, "router.vnet");
+    return asciiEql(qname, "sdnat") or asciiEql(qname, "router.sdnat");
 }
 
 fn questionName(query: []const u8, out: *[256]u8) ?[]const u8 {

@@ -6,16 +6,16 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-if [ "${VNET_OFFLOAD_NETNS:-0}" != "1" ]; then
+if [ "${SDNAT_OFFLOAD_NETNS:-0}" != "1" ]; then
     ZIG="${ZIG:-zig}"
     command -v "$ZIG" >/dev/null 2>&1 || {
         echo "FAIL: zig not found (set ZIG=/path/to/zig)" >&2
         exit 1
     }
     if [ "${EUID}" -eq 0 ]; then
-        exec unshare -n env VNET_OFFLOAD_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+        exec unshare -n env SDNAT_OFFLOAD_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
     fi
-    exec unshare -rn env VNET_OFFLOAD_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+    exec unshare -rn env SDNAT_OFFLOAD_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
 fi
 
 ZIG="${ZIG:-zig}"
@@ -25,12 +25,12 @@ command -v "$ZIG" >/dev/null 2>&1 || {
 }
 
 WORK="$(mktemp -d)"
-export VNET_RUN_DIR="$WORK/run"
+export SDNAT_RUN_DIR="$WORK/run"
 BIN="$ROOT/zig-out/bin"
 CFG="$WORK/offload.json"
 CFG_STP="$WORK/offload-stp.json"
-LOG="$WORK/vnetd.log"
-LOG_STP="$WORK/vnetd-stp.log"
+LOG="$WORK/sdnatd.log"
+LOG_STP="$WORK/sdnatd-stp.log"
 
 vpid=""
 pidA=""
@@ -39,8 +39,8 @@ pidU=""
 
 cleanup() {
     [ -n "$vpid" ] && kill -TERM "$vpid" 2>/dev/null || true
-    if [ -f "$CFG" ] && [ -x "$BIN/vnet" ]; then
-        "$BIN/vnet" down -c "$CFG" >/dev/null 2>&1 || true
+    if [ -f "$CFG" ] && [ -x "$BIN/sdnat" ]; then
+        "$BIN/sdnat" down -c "$CFG" >/dev/null 2>&1 || true
     fi
     [ -n "$pidA" ] && kill "$pidA" 2>/dev/null || true
     [ -n "$pidB" ] && kill "$pidB" 2>/dev/null || true
@@ -182,20 +182,20 @@ done
 ip link set pw up || die "bring wan port up"
 ok "clients 10.30.40.2/3 and upstream 192.0.2.2"
 
-log "vnetd"
-"$BIN/vnetd" -c "$CFG" >"$LOG" 2>&1 &
+log "sdnatd"
+"$BIN/sdnatd" -c "$CFG" >"$LOG" 2>&1 &
 vpid=$!
 for i in $(seq 1 100); do
     grep -q "started instance" "$LOG" && break
     if ! kill -0 "$vpid" 2>/dev/null; then
         cat "$LOG"
-        die "vnetd exited"
+        die "sdnatd exited"
     fi
     sleep 0.02
 done
 grep -q "started instance" "$LOG" || {
     cat "$LOG"
-    die "vnetd did not start"
+    die "sdnatd did not start"
 }
 
 BR="$(sed -n 's/.*kernel=\([^ ]*\).*/\1/p' "$LOG" | head -1)"
@@ -263,15 +263,15 @@ vpid=""
 grep -Eq "snat=[1-9][0-9]*" "$LOG" || die "no SNAT counters"
 ok "10.30.40.2 -> 192.0.2.2 with masquerade"
 
-"$BIN/vnet" down -c "$CFG" || die "first vnet down failed"
+"$BIN/sdnat" down -c "$CFG" || die "first sdnat down failed"
 log "kernel STP"
-"$BIN/vnetd" -c "$CFG_STP" >"$LOG_STP" 2>&1 &
+"$BIN/sdnatd" -c "$CFG_STP" >"$LOG_STP" 2>&1 &
 vpid=$!
 for i in $(seq 1 100); do
     grep -q "started instance" "$LOG_STP" && break
     if ! kill -0 "$vpid" 2>/dev/null; then
         cat "$LOG_STP"
-        die "vnetd (STP) exited"
+        die "sdnatd (STP) exited"
     fi
     sleep 0.02
 done
@@ -287,23 +287,23 @@ log "rollback"
 kill -TERM "$vpid"
 wait "$vpid" 2>/dev/null || true
 vpid=""
-"$BIN/vnet" down -c "$CFG_STP" || die "vnet down failed"
+"$BIN/sdnat" down -c "$CFG_STP" || die "sdnat down failed"
 for dev in "$BR" "$BR_STP" "$TRUNK"; do
     if ip link show dev "$dev" >/dev/null 2>&1; then
-        die "$dev survived vnet down"
+        die "$dev survived sdnat down"
     fi
 done
 for dev in pa pb; do
     if ip -o link show dev "$dev" | grep -q "master "; then
-        die "$dev kept its master after vnet down"
+        die "$dev kept its master after sdnat down"
     fi
     ip -o link show dev "$dev" | grep -q "state DOWN" ||
         die "$dev was not restored to down"
 done
-[ "$("$BIN/vnet" journal -c "$CFG" 2>&1)" = "no journal" ] ||
+[ "$("$BIN/sdnat" journal -c "$CFG" 2>&1)" = "no journal" ] ||
     die "journal was not truncated"
 ok "kernel bridge, veth, VLANs, and link state restored"
 
-echo "--- vnetd ---"
+echo "--- sdnatd ---"
 cat "$LOG"
 ok "test_offload"

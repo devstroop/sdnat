@@ -5,9 +5,9 @@
 
 ## Context
 
-vNET reads frames from `AF_PACKET`. Locally generated packets can reach the
+SDNAT reads frames from `AF_PACKET`. Locally generated packets can reach the
 packet socket while the kernel still carries `CHECKSUM_PARTIAL`: the NIC (or
-veth peer) is expected to finish the TCP/UDP checksum. vNET copies the bytes,
+veth peer) is expected to finish the TCP/UDP checksum. SDNAT copies the bytes,
 rewrites the Ethernet header on another port and transmits them through a new
 packet socket, so the offload metadata is lost and the peer receives an
 invalid L4 checksum. ICMP is unaffected because the kernel computes its
@@ -21,7 +21,7 @@ drop them.
 
 ## Decision
 
-For every forwarded, non-fragmented IPv4 packet, vNET repairs the TCP or
+For every forwarded, non-fragmented IPv4 packet, SDNAT repairs the TCP or
 UDP checksum once after the forwarding copy and before conntrack/NAT. NAT then
 adjusts TCP/UDP/ICMP checksums incrementally with RFC 1624 (ADR-014) instead of
 rescanning the payload. The IPv4 header checksum is always recomputed. UDP
@@ -51,6 +51,6 @@ checksums before transmit.
   the NAT ordering.
 - Only TCP GSO is split. UDP GSO and other non-TCP super-frames are still
   dropped, and the IPv6 parser rejects payloads above 65,535 bytes. The
-  datapath still uses an in-band copy rather than `PACKET_VNET_HDR`.
+  datapath still uses an in-band copy rather than `PACKET_SDNAT_HDR`.
 - Fragmented traffic still depends on the sender's checksum; reassembly or
   offload-awareness is deferred.

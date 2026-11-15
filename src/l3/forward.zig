@@ -6,29 +6,29 @@
 //! in from the control plane.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
-const port_mod = @import("vnet-port").port;
-const schema = @import("vnet-core").config_schema;
-const ethernet = @import("vnet-l2").ethernet;
-const stp = @import("vnet-l2").stp;
-const fdb_mod = @import("vnet-l2").fdb;
-const ipv4 = @import("vnet-l3").ipv4;
-const ipv6 = @import("vnet-l3").ipv6;
-const icmpv6 = @import("vnet-l3").icmpv6;
-const ndp = @import("vnet-l3").ndp;
-const arp = @import("vnet-l3").arp;
-const icmp = @import("vnet-l3").icmp;
-const fib = @import("vnet-l3").fib;
-const fib6 = @import("vnet-l3").fib6;
-const conntrack_mod = @import("vnet-conntrack").conntrack;
-const nat_mod = @import("vnet-nat").nat;
-const dhcp_message = @import("vnet-dhcp").message;
-const dhcp_server = @import("vnet-dhcp").server;
-const memory_port = @import("vnet-port").memory;
-const config_parse = @import("vnet-core").config_parse;
-const rate = @import("vnet-l3").rate;
+const types = @import("sdnat-core").types;
+const port_mod = @import("sdnat-port").port;
+const schema = @import("sdnat-core").config_schema;
+const ethernet = @import("sdnat-l2").ethernet;
+const stp = @import("sdnat-l2").stp;
+const fdb_mod = @import("sdnat-l2").fdb;
+const ipv4 = @import("sdnat-l3").ipv4;
+const ipv6 = @import("sdnat-l3").ipv6;
+const icmpv6 = @import("sdnat-l3").icmpv6;
+const ndp = @import("sdnat-l3").ndp;
+const arp = @import("sdnat-l3").arp;
+const icmp = @import("sdnat-l3").icmp;
+const fib = @import("sdnat-l3").fib;
+const fib6 = @import("sdnat-l3").fib6;
+const conntrack_mod = @import("sdnat-conntrack").conntrack;
+const nat_mod = @import("sdnat-nat").nat;
+const dhcp_message = @import("sdnat-dhcp").message;
+const dhcp_server = @import("sdnat-dhcp").server;
+const memory_port = @import("sdnat-port").memory;
+const config_parse = @import("sdnat-core").config_parse;
+const rate = @import("sdnat-l3").rate;
 
-const PortError = @import("vnet-core").PortError;
+const PortError = @import("sdnat-core").PortError;
 
 pub const conntrack_default_entries: u32 = 65_536;
 pub const conntrack_small_entries: u32 = 4_096;
@@ -1118,7 +1118,7 @@ pub const Forwarder = struct {
     };
 
     /// Evaluates a synthetic packet against the compiled rule set. Intended for
-    /// `vnet firewall test`; it never touches a real port.
+    /// `sdnat firewall test`; it never touches a real port.
     pub fn probeFirewallConfig(
         gpa: std.mem.Allocator,
         io: std.Io,
@@ -6074,7 +6074,7 @@ test "live NAT apply keeps DHCP client masquerade state in sync" {
 
 test "kernel offload bridge maps its veth trunk as one synthetic member" {
     const MemoryPort = memory_port.MemoryPort;
-    var trunk = MemoryPort.init(testing.allocator, port_a, "vnetp0", 1500);
+    var trunk = MemoryPort.init(testing.allocator, port_a, "sdnatp0", 1500);
     defer trunk.deinit();
     trunk.mac = port_a_mac;
 

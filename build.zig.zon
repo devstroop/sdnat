@@ -1,7 +1,7 @@
 .{
-    .name = .vnet,
+    .name = .sdnat,
     .version = "0.2.0",
-    .fingerprint = 0x62bbecb1dc665715,
+    .fingerprint = 0xa5d304bf6ddf136a,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},
     .paths = .{

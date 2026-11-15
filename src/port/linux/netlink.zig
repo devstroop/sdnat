@@ -7,8 +7,8 @@ const std = @import("std");
 const linux = std.os.linux;
 const sys = @import("sys.zig");
 const iface_mod = @import("iface.zig");
-const types = @import("vnet-core").types;
-const PortError = @import("vnet-core").PortError;
+const types = @import("sdnat-core").types;
+const PortError = @import("sdnat-core").PortError;
 
 const native_endian = @import("builtin").cpu.arch.endian();
 
@@ -1577,7 +1577,7 @@ test "builds RTM_NEWROUTE message" {
 test "builds bridge create message" {
     var buf: [1024]u8 = undefined;
     const msg = buildLinkCreateMessage(&buf, NLM_F_REQUEST | NLM_F_ACK, 11, .{
-        .name = "vnetbr0",
+        .name = "sdnatbr0",
         .kind = .bridge,
         .stp = true,
         .vlan_filtering = true,
@@ -1585,7 +1585,7 @@ test "builds bridge create message" {
 
     try std.testing.expectEqual(@as(u16, RTM_NEWLINK), readU16(msg, 4).?);
     const attrs = msg[NLMSG_HDR_LEN + IFINFOMSG_LEN ..];
-    try std.testing.expectEqualStrings("vnetbr0", std.mem.sliceTo(getAttr(attrs, IFLA_IFNAME).?, 0));
+    try std.testing.expectEqualStrings("sdnatbr0", std.mem.sliceTo(getAttr(attrs, IFLA_IFNAME).?, 0));
     const linkinfo = getAttr(attrs, IFLA_LINKINFO).?;
     try std.testing.expectEqualStrings("bridge", std.mem.sliceTo(getAttr(linkinfo, IFLA_INFO_KIND).?, 0));
     const data = getAttr(linkinfo, IFLA_INFO_DATA).?;
@@ -1597,9 +1597,9 @@ test "builds bridge create message" {
 test "builds veth create message with peer" {
     var buf: [1024]u8 = undefined;
     const msg = buildLinkCreateMessage(&buf, NLM_F_REQUEST | NLM_F_ACK, 12, .{
-        .name = "vnetp0",
+        .name = "sdnatp0",
         .kind = .veth,
-        .peer = "vnetb0",
+        .peer = "sdnatb0",
     });
 
     const attrs = msg[NLMSG_HDR_LEN + IFINFOMSG_LEN ..];
@@ -1608,7 +1608,7 @@ test "builds veth create message with peer" {
     const data = getAttr(linkinfo, IFLA_INFO_DATA).?;
     const peer = getAttr(data, VETH_INFO_PEER).?;
     try std.testing.expect(peer.len >= IFINFOMSG_LEN);
-    try std.testing.expectEqualStrings("vnetb0", std.mem.sliceTo(getAttr(peer[IFINFOMSG_LEN..], IFLA_IFNAME).?, 0));
+    try std.testing.expectEqualStrings("sdnatb0", std.mem.sliceTo(getAttr(peer[IFINFOMSG_LEN..], IFLA_IFNAME).?, 0));
 }
 
 test "builds bridge vlan message" {

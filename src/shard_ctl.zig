@@ -1,4 +1,4 @@
-//! vnet-ctl: control protocol, transactions, journal and host mutations.
+//! sdnat-ctl: control protocol, transactions, journal and host mutations.
 
 const builtin = @import("builtin");
 

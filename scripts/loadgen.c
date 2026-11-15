@@ -155,7 +155,7 @@ static int cmd_udp_sink(const char *ip, const char *port_s) {
             for (int i = 0; i < n; i++) {
                 size_t len = msgs[i].msg_len;
                 if (len >= 8 &&
-                    memcmp(iovs[i].iov_base, "VNETQUIT", 8) == 0) {
+                    memcmp(iovs[i].iov_base, "SDNATQUIT", 8) == 0) {
                     done = 1;
                     break;
                 }
@@ -194,7 +194,7 @@ static int cmd_udp_source(const char *ip, const char *port_s,
     unsigned char *buf = malloc(size);
     if (!buf) die("malloc");
     memset(buf, 0, size);
-    memcpy(buf, "VNETDATA", 8);
+    memcpy(buf, "SDNATDATA", 8);
 
     enum { batch = 64 };
     struct iovec iovs[batch];
@@ -233,7 +233,7 @@ static int cmd_udp_source(const char *ip, const char *port_s,
     }
     unsigned long long end = now_ns();
     for (int i = 0; i < 5; i++) {
-        memcpy(buf, "VNETQUIT", 8);
+        memcpy(buf, "SDNATQUIT", 8);
         send(fd, buf, 8, 0);
         struct timespec ts = {.tv_sec = 0, .tv_nsec = 10000000};
         nanosleep(&ts, NULL);
@@ -291,7 +291,7 @@ static int cmd_udp_rtt(const char *ip, const char *port_s, const char *count_s) 
     size_t lost = 0;
     for (size_t i = 0; i < count; i++) {
         memset(buf, 0, sizeof(buf));
-        memcpy(buf, "VNETRTT", 7);
+        memcpy(buf, "SDNATRTT", 7);
         unsigned long long t0 = now_ns();
         if (send(fd, buf, sizeof(buf), 0) != (ssize_t)sizeof(buf))
             die("send(udp)");

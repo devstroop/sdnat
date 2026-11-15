@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to vNET are documented here. The format follows
+All notable changes to SDNAT are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
@@ -26,6 +26,14 @@ All notable changes to vNET are documented here. The format follows
   status zone use `vnet`/`VNET`. There are no compatibility aliases. Stop any
   pre-rename daemon with the old `vrouter down` before upgrading; `/run/vrouter`
   state is not migrated.
+- **Breaking:** rename the project from vNET to SDNAT (ADR-019). Use `SDNAT`
+  in prose and `sdnat` in commands, identifiers, paths and package names. The
+  CLI, daemon and web adapter are `sdnat`, `sdnatd` and `sdnatweb`; the C ABI is
+  `sdnat_*` in `include/sdnat.h` (ABI 4); environment variables, default config
+  and run paths, the control socket, journals, the daemon log and the local DNS
+  status zone use `sdnat`/`SDNAT`. There are no compatibility aliases. Stop any
+  pre-rename daemon with the old `vnet down` before upgrading; `/run/vnet`
+  state is not migrated.
 
 ### Fixed
 
@@ -41,7 +49,7 @@ All notable changes to vNET are documented here. The format follows
 
 - **Linux release tooling:** `scripts/package.sh` builds a release tarball, a
   Debian package without `dpkg-deb`, and an RPM with `--rpm`;
-  `packaging/vnetd.service` provides a hardened systemd unit, and
+  `packaging/sdnatd.service` provides a hardened systemd unit, and
   `.github/workflows/release.yml` builds native amd64 and arm64 artifacts on
   `v*` tags. `docs/QUICKSTART.md`,
   `docs/TROUBLESHOOTING.md`, `docs/PERFORMANCE.md` and `docs/RELEASE.md`
@@ -51,10 +59,10 @@ All notable changes to vNET are documented here. The format follows
   flaps, live NAT edits and daemon restarts. The baseline is recorded in
   `docs/PERFORMANCE.md`; the 64 B packet-rate budget and long-duration
   evidence remain open.
-- **Compiler-checked shard graph (ADR-018):** `vnet-core`, `vnet-port`,
-  `vnet-l2`, `vnet-l3`, `vnet-conntrack`, `vnet-nat`, `vnet-dhcp`, `vnet-dns`
-  and `vnet-ctl` are now named Zig modules with declared dependencies and
-  per-shard test artifacts. The public `vnet` umbrella and C ABI are unchanged;
+- **Compiler-checked shard graph (ADR-018):** `sdnat-core`, `sdnat-port`,
+  `sdnat-l2`, `sdnat-l3`, `sdnat-conntrack`, `sdnat-nat`, `sdnat-dhcp`, `sdnat-dns`
+  and `sdnat-ctl` are now named Zig modules with declared dependencies and
+  per-shard test artifacts. The public `sdnat` umbrella and C ABI are unchanged;
   the CLI keeps the `std.Thread` backend while the C ABI keeps pthread.
 - **Live DNS, link and lease actions (P2):** the DNS page sends read-only
   A/AAAA diagnostic queries through `dns.query`; the daemon resolves against
@@ -65,7 +73,7 @@ All notable changes to vNET are documented here. The format follows
   the in-memory binding without notifying the client, persists the lease
   database, and is audited. All flows preserve staged drafts where present,
   and successful link changes are audited.
-- **Supervised stop (P2):** the System page stops vnetd after a typed
+- **Supervised stop (P2):** the System page stops sdnatd after a typed
   `stop` confirmation. The control call is audited, requires a supervisor
   (`--enable-restart`), and reports the accepted stop before the daemon exits;
   the UI explains that forwarding stops and the admin disconnects.
@@ -73,8 +81,8 @@ All notable changes to vNET are documented here. The format follows
   `restart_required` with a one-time, boot-bound `restart_token` when restart
   support is enabled. `daemon.restart` consumes the token, audits the accepted
   operation and asks the service loop to exit cleanly; `daemon.stop` uses typed
-  `stop` confirmation. `vnet up` passes `--enable-restart`, and direct
-  `vnetd` runs can opt in with the same flag, to perform a clean teardown and
+  `stop` confirmation. `sdnat up` passes `--enable-restart`, and direct
+  `sdnatd` runs can opt in with the same flag, to perform a clean teardown and
   self re-exec for preview deployments; without it, lifecycle calls fail with
   `restart_unavailable`. The DHCP, DNS and System
   pages show a persistent restart banner and a restart button when a token is
@@ -113,7 +121,7 @@ All notable changes to vNET are documented here. The format follows
   worker, and the client accepts 16 MiB config responses. v3 list reads expose
   ports, bridges, interfaces, routes, DHCP, DNS and firewall configuration from
   the current on-disk document.
-- **Web admin preview (post-v1, ADR-011):** opt-in `vnetweb` built with
+- **Web admin preview (post-v1, ADR-011):** opt-in `sdnatweb` built with
   `zig build web`. The Zig process serves server-rendered HTMX 4.0.0 pages and
   fragments with embedded assets, plus a same-origin JSON API backed by the
   Unix control socket. It binds loopback only, authenticates with an Argon2id
@@ -122,15 +130,15 @@ All notable changes to vNET are documented here. The format follows
   above extend the same preview. No Node build step, package manager or runtime
   asset directory is required. It is excluded from the default build and not
   part of the 0.2.0 scope. See `docs/WEB.md`.
-- **Crash recovery:** `vnet doctor` is now read-only but works after a
-  daemon crash, and `vnet doctor --repair` replays journal inverses while
+- **Crash recovery:** `sdnat doctor` is now read-only but works after a
+  daemon crash, and `sdnat doctor --repair` replays journal inverses while
   refusing to run against a live daemon. Malformed journal tails are quarantined
   to `<instance>.journal.quarantine.<timestamp>`; malformed records before valid
   ones refuse repair without mutating host state. `scripts/test_crash.sh` covers
   kill -9, dry-run, live-daemon refusal, unmanaged-state preservation, and
   malformed-journal handling.
-- **Live NAT updates (ADR-014):** `vnet nat add|del masquerade` and
-  `vnet nat add|del port-forward` validate and atomically save the config,
+- **Live NAT updates (ADR-014):** `sdnat nat add|del masquerade` and
+  `sdnat nat add|del port-forward` validate and atomically save the config,
   apply the complete desired NAT tables over the protocol-v2 `nat.apply`
   control operation, and restore the previous config if the daemon rejects the
   update. With no daemon the change is saved with a warning. The NAT apply queue
@@ -145,34 +153,34 @@ All notable changes to vNET are documented here. The format follows
   CIDRs, IPv6 routes with family-checked next hops, firewall `family` and
   `proto: "icmpv6"`, and `firewall.rate_limit.ndp`. IPv6-enabled interfaces
   require MTU >= 1280.
-- `vnet iface set|del` and `vnet route add|del` accept IPv6 values and
-  journal AF_INET6 host mutations; `vnet firewall test` accepts IPv6
+- `sdnat iface set|del` and `sdnat route add|del` accept IPv6 values and
+  journal AF_INET6 host mutations; `sdnat firewall test` accepts IPv6
   addresses and `icmpv6`.
 - `scripts/test_ipv6.sh` netns test for IPv6 ping and TCP forwarding.
 
 - R7 Linux control socket: line-delimited JSON over
-  `/run/vnet/control.sock` (mode `0660`, peer-uid check), live read-only
-  `status`, `nat.list` and `conntrack.list`, and the `vnet up`, `vnet doctor`,
-  `vnet nat list` and `vnet conntrack list` CLI commands. The daemon publishes
+  `/run/sdnat/control.sock` (mode `0660`, peer-uid check), live read-only
+  `status`, `nat.list` and `conntrack.list`, and the `sdnat up`, `sdnat doctor`,
+  `sdnat nat list` and `sdnat conntrack list` CLI commands. The daemon publishes
   immutable datapath snapshots once per second. A run-dir lock rejects a
-  second daemon, concurrent `vnet up` starts are serialized, and `vnet down`
-  refuses while a matching daemon is live. `vnet up` writes daemon stderr to
-  `<state_dir>/vnetd.log` and reports its path and tail on failure.
+  second daemon, concurrent `sdnat up` starts are serialized, and `sdnat down`
+  refuses while a matching daemon is live. `sdnat up` writes daemon stderr to
+  `<state_dir>/sdnatd.log` and reports its path and tail on failure.
 - R7 foundation: reusable daemon lifecycle (`src/app/service.zig`) shared by
-  `vnetd` and the versioned C ABI (`include/vnet.h`, `src/ffi.zig`), an
+  `sdnatd` and the versioned C ABI (`include/sdnat.h`, `src/ffi.zig`), an
   injected-fd L3 port for Android `VpnService`, stable lifecycle/error/status
   codes, and a compiled C header/link smoke test.
 - Optional Linux kernel-bridge offload (`bridge.offload = "kernel"`): creates a
   journaled kernel bridge, enslaves existing L2 members, and attaches a veth
   trunk as the bridge's synthetic userspace port. Kernel VLAN filtering/STP,
-  transactional rollback, `vnet down` restoration, and the
+  transactional rollback, `sdnat down` restoration, and the
   `scripts/test_offload.sh` L2/SVI/DHCP/NAT/STP parity test are included.
   Offloaded members reject `create`/`mtu` overrides and warn when per-port
   `storm_control` cannot be enforced by the kernel bridge.
 - R0 scaffold: `build.zig`/`build.zig.zon`, cross-compilation for Linux and
   Android, CI matrix.
 - Strict JSON configuration schema, parser and semantic validator.
-- `vnet` CLI with `version`, `validate` and `help`.
+- `sdnat` CLI with `version`, `validate` and `help`.
 - `std.Io` context helper and leveled text/JSON logger (stack-buffered).
 - `Port` vtable, in-memory reference port, fixed-size buffer pool.
 - Golden Ethernet/IPv4/UDP frame fixtures and round-trip tests.
@@ -192,15 +200,15 @@ All notable changes to vNET are documented here. The format follows
   `iif`/`oif` (port, interface or bridge), `accept`/`drop`/`reject`,
   `ct_state`, per-rule counters, and default deny before the conntrack
   established shortcut.
-- `vnet firewall list` prints the ordered rule set, default policies and
+- `sdnat firewall list` prints the ordered rule set, default policies and
   control-plane rate limits.
-- `vnet firewall test` evaluates a synthetic packet against the configured
+- `sdnat firewall test` evaluates a synthetic packet against the configured
   rules and prints the matching rule or default action.
-- `vnet firewall counters` reads the per-rule packet and drop snapshot that
-  `vnetd` writes to the run directory every 5 s and on shutdown.
+- `sdnat firewall counters` reads the per-rule packet and drop snapshot that
+  `sdnatd` writes to the run directory every 5 s and on shutdown.
 - Token-bucket limits for generated ICMP errors, ARP processing and DHCP
   server requests (`firewall.rate_limit`); `0` disables a limit.
-- `vnet bridge list` shows bridge membership, effective PVID/tagged VLANs,
+- `sdnat bridge list` shows bridge membership, effective PVID/tagged VLANs,
   tri-state STP/offload and SVI addressing.
 - Per-port storm control (`ports.<name>.storm_control`, default 1000
   flooded frames/s, `0` disables) with a `storm_dropped` counter.
@@ -291,23 +299,23 @@ All notable changes to vNET are documented here. The format follows
 - Forwarding pipeline: TTL decrement, IPv4/TCP/UDP checksum repair (ADR-007),
   ICMP unreachable/time-exceeded/frag-needed, egress MTU enforcement, Ethernet
   and TUN egress.
-- `vnetd` data loop: polls ports, forwards frames and logs counters.
+- `sdnatd` data loop: polls ports, forwards frames and logs counters.
 - Config interfaces/static routes populate local addresses, connected routes
   and the FIB.
 - `scripts/test_route.sh`: two isolated hosts ping and fetch HTTP through
-  `vnetd`; verifies TTL=63, TCP and graceful shutdown.
+  `sdnatd`; verifies TTL=63, TCP and graceful shutdown.
 - Gratuitous ARP announcements for configured local addresses at daemon start.
 - ARP pending-packet queue (32 slots, 1 s): the first packet to an unresolved
   neighbor is flushed on reply instead of being dropped.
 - TUN/L3 ingress and egress: bare IPv4, local echo replies, ICMP errors and
   forwarding between TUN and L2 ports. `scripts/test_tun.sh` covers ICMP and
   TCP through a kernel TUN peer.
-- `vnet iface set|del|up|down` and `vnet route add|del` with journal-before-
-  mutation, ownership-gated deletes, and `vnet down` reverse rollback.
-- JSONL journal under `$VNET_RUN_DIR` (default `/run/vnet`), atomic and
+- `sdnat iface set|del|up|down` and `sdnat route add|del` with journal-before-
+  mutation, ownership-gated deletes, and `sdnat down` reverse rollback.
+- JSONL journal under `$SDNAT_RUN_DIR` (default `/run/sdnat`), atomic and
   fsynced; failed applies remove their record; partial rollback keeps the
   journal for inspection and retry.
-- `vnet journal` for inspecting recorded mutations.
+- `sdnat journal` for inspecting recorded mutations.
 - `scripts/test_journal.sh`: address/route/link mutations, duplicate no-ops,
   unmanaged-delete rejection, pre-existing state preservation and rollback.
 
@@ -323,11 +331,11 @@ All notable changes to vNET are documented here. The format follows
   configurable cache size (`dns.max_entries`) and counters.
 - `scripts/test_dhcp.sh`: raw Ethernet DHCP client obtains a lease, pings the
   router and verifies persistence across a daemon restart.
-- `scripts/test_dns.sh`: query through `vnetd`, answer from the fake upstream,
+- `scripts/test_dns.sh`: query through `sdnatd`, answer from the fake upstream,
   then a cache hit; both tests run in CI.
 - Not yet: DNS DoH/DoT.
 - Added: initial DHCP client on the uplink, DNS over TCP, split zones and a
-  local `vnet.` / `router.vnet.` status zone.
+  local `sdnat.` / `router.sdnat.` status zone.
 
 ### R3 — NAT and conntrack
 
@@ -358,7 +366,7 @@ All notable changes to vNET are documented here. The format follows
 - TUN (`IFF_NO_PI`) and TAP ports, created from config (`"create": "tun"|"tap"`).
 - rtnetlink link dump and link/addr/neigh monitor with bounds-checked parsing.
 - Port manager with stable IDs, MTU application and hotplug refresh.
-- `vnet port list`, `vnet status`, `vnet selftest`, and the `vnetd` daemon
+- `sdnat port list`, `sdnat status`, `sdnat selftest`, and the `sdnatd` daemon
   skeleton with graceful SIGINT/SIGTERM shutdown.
 - `scripts/test_netns.sh`: veth L2 forwarding, TUN/TAP creation, netlink dump,
   manager status and daemon hotplug in a private netns.

@@ -1,6 +1,6 @@
 # Web admin preview
 
-`vnetweb` is an opt-in web frontend for a running Linux vNET.
+`sdnatweb` is an opt-in web frontend for a running Linux SDNAT.
 It is a post-v1 preview of ADR-011, not part of the default 0.2.0 build and not
 yet a replacement for the CLI.
 
@@ -22,20 +22,20 @@ are staged drafts that are diffed and applied by the daemon through
 - `src/web/assets/` — vendored HTMX 4.0.0 (0BSD), CSS and progressive-
   enhancement JavaScript, embedded with `@embedFile`.
 - `src/web/auth.zig` — Argon2id password verification, sessions, CSRF.
-- `exec/vnetweb/main.zig` — loopback-only process and CLI flags.
+- `exec/sdnatweb/main.zig` — loopback-only process and CLI flags.
 - `src/control/` — the existing Unix-socket control client used by the server.
 
 There is no frontend build step, Node runtime, package manager, CDN or runtime
-asset directory. `zig build web` builds only the `vnetweb` executable.
+asset directory. `zig build web` builds only the `sdnatweb` executable.
 
 ## Build
 
 ```bash
 zig build web
-./zig-out/bin/vnetweb --help
+./zig-out/bin/sdnatweb --help
 ```
 
-The default `zig build` does not install `vnetweb`.
+The default `zig build` does not install `sdnatweb`.
 
 ## Create an admin password
 
@@ -43,7 +43,7 @@ The password is stored as an Argon2id PHC string. Keep the file mode `0600`.
 
 ```bash
 printf '%s\n' 'replace-me-with-a-long-password' \
-  | ./zig-out/bin/vnetweb --hash-password \
+  | ./zig-out/bin/sdnatweb --hash-password \
   > /tmp/web-password
 chmod 600 /tmp/web-password
 ```
@@ -54,10 +54,10 @@ history that contains it.
 ## Run
 
 ```bash
-sudo -u vnet \
-  ./zig-out/bin/vnetweb \
+sudo -u sdnat \
+  ./zig-out/bin/sdnatweb \
     --listen 127.0.0.1:8080 \
-    --control /run/vnet/control.sock \
+    --control /run/sdnat/control.sock \
     --password-hash-file /tmp/web-password
 ```
 
@@ -66,8 +66,8 @@ Options:
 | Flag | Default | Meaning |
 |---|---|---|
 | `--listen` | `127.0.0.1:8080` | Loopback address only. |
-| `--control` | `$VNET_RUN_DIR/control.sock` | Existing control socket. |
-| `--password-hash-file` | `/etc/vnet/web-password` | Argon2id PHC file. |
+| `--control` | `$SDNAT_RUN_DIR/control.sock` | Existing control socket. |
+| `--password-hash-file` | `/etc/sdnat/web-password` | Argon2id PHC file. |
 | `--session-ttl-hours` | `12` | Session lifetime, 1–168 hours. |
 | `--hash-password` | — | Read a password from stdin and print a PHC hash. |
 
@@ -75,14 +75,14 @@ Restart-required saves return a one-time token. To let the web restart
 or stop the daemon locally, start it with `--enable-restart`:
 
 ```bash
-./zig-out/bin/vnetd -c /etc/vnet/vnet.json --enable-restart
+./zig-out/bin/sdnatd -c /etc/sdnat/sdnat.json --enable-restart
 ```
 
 Restart performs a clean teardown and re-exec; stop exits and expects the
-supervisor to start it again. This option is not a service manager. `vnet
+supervisor to start it again. This option is not a service manager. `sdnat
 up` passes it automatically when it launches the daemon. Without it,
 `restart_supported` is false, restart prints the exact `systemctl restart
-vnetd` command, and the stop control is disabled.
+sdnatd` command, and the stop control is disabled.
 
 ## Pages and fragments
 
@@ -108,7 +108,7 @@ The browser loads a full page once, then HTMX refreshes only the live region:
 | `/logs` | page | Bounded daemon log tail (48 KiB) with line/size metadata. |
 | `/config` | page | Revision/source/writability, logging editor and running JSON. |
 | `/restart` | action | Accepts a one-time restart token from a restart-required apply. |
-| `/stop` | action | Stops vnetd after typed `stop` confirmation and a supervisor check. |
+| `/stop` | action | Stops sdnatd after typed `stop` confirmation and a supervisor check. |
 | `/nat/rules` | action | Stages NAT masquerade/port-forward drafts. |
 | `/nat/review` | action | Diffs the staged NAT draft. |
 | `/nat/apply` | action | Applies the staged NAT draft and live NAT. |

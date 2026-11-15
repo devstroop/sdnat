@@ -4,7 +4,7 @@
 
 const std = @import("std");
 const ipv6 = @import("ipv6.zig");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 
 pub const Type = struct {
     pub const destination_unreachable: u8 = 1;

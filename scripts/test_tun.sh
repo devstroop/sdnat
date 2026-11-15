@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # TUN ingress/egress test: a kernel peer sends IPv4 through a TUN owned by
-# vnetd; vnetd forwards to a veth host and back. Covers bare-IP ingress, local
+# sdnatd; sdnatd forwards to a veth host and back. Covers bare-IP ingress, local
 # ARP resolution, pending-packet flush, TCP checksum repair and TUN egress.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-if [ "${VNET_TUN_NETNS:-0}" != "1" ]; then
+if [ "${SDNAT_TUN_NETNS:-0}" != "1" ]; then
     ZIG="${ZIG:-zig}"
     command -v "$ZIG" >/dev/null 2>&1 || {
         echo "FAIL: zig not found (set ZIG=/path/to/zig)" >&2
         exit 1
     }
     if [ "${EUID}" -eq 0 ]; then
-        exec unshare -n env VNET_TUN_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+        exec unshare -n env SDNAT_TUN_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
     fi
-    exec unshare -rn env VNET_TUN_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+    exec unshare -rn env SDNAT_TUN_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
 fi
 
 ZIG="${ZIG:-zig}"
@@ -30,7 +30,7 @@ done
 WORK="$(mktemp -d)"
 CFG="$WORK/tun.json"
 BIN="$ROOT/zig-out/bin"
-export VNET_RUN_DIR="$WORK/run"
+export SDNAT_RUN_DIR="$WORK/run"
 
 dev="tr$$"
 peer="ta$$"
@@ -74,8 +74,8 @@ cat > "$CFG" <<'EOF'
   "version": 1,
   "instance": "tun-test",
   "ports": {
-    "lan": { "kind": "l2", "device": "vnet-lan" },
-    "vpn": { "kind": "l3", "device": "vnet0", "create": "tun", "mtu": 1400 }
+    "lan": { "kind": "l2", "device": "sdnat-lan" },
+    "vpn": { "kind": "l3", "device": "sdnat0", "create": "tun", "mtu": 1400 }
   },
   "interfaces": {
     "lan0": { "port": "lan", "address": "10.0.1.1/24" },
@@ -88,26 +88,26 @@ cat > "$CFG" <<'EOF'
 }
 EOF
 
-# The config uses a stable port name; rename the veth end before vnetd starts.
-ip link set "$dev" name vnet-lan
-dev="vnet-lan"
+# The config uses a stable port name; rename the veth end before sdnatd starts.
+ip link set "$dev" name sdnat-lan
+dev="sdnat-lan"
 
-log "vnetd"
-"$BIN/vnetd" -c "$CFG" >"$WORK/vnetd.log" 2>&1 &
+log "sdnatd"
+"$BIN/sdnatd" -c "$CFG" >"$WORK/sdnatd.log" 2>&1 &
 pid_d=$!
 
 for _ in $(seq 1 100); do
-    ip link show vnet0 >/dev/null 2>&1 && break
+    ip link show sdnat0 >/dev/null 2>&1 && break
     sleep 0.02
 done
-ip link show vnet0 >/dev/null 2>&1 || {
-    cat "$WORK/vnetd.log"
-    die "vnet0 was not created"
+ip link show sdnat0 >/dev/null 2>&1 || {
+    cat "$WORK/sdnatd.log"
+    die "sdnat0 was not created"
 }
 
-ip link set vnet0 up
-ip addr add 10.0.3.2/24 dev vnet0
-ip route add 10.0.2.0/24 via 10.0.3.1 dev vnet0
+ip link set sdnat0 up
+ip addr add 10.0.3.2/24 dev sdnat0
+ip route add 10.0.2.0/24 via 10.0.3.1 dev sdnat0
 
 nsenter -t "$pid_a" -n python3 -m http.server 8080 --bind 10.0.2.2 \
     </dev/null >"$WORK/http.log" 2>&1 &
@@ -121,7 +121,7 @@ done
 
 log "icmp over tun"
 ping -c 3 -W 2 10.0.2.2 >"$WORK/ping.log" 2>&1 || {
-    cat "$WORK/ping.log" "$WORK/vnetd.log"
+    cat "$WORK/ping.log" "$WORK/sdnatd.log"
     die "ping over tun failed"
 }
 grep -q '3 received' "$WORK/ping.log" || die "ping loss over tun"
@@ -141,13 +141,13 @@ for _ in $(seq 1 50); do
     sleep 0.05
 done
 if [ -z "$status" ]; then
-    cat "$WORK/vnetd.log"
+    cat "$WORK/sdnatd.log"
     die "tcp over tun timed out"
 fi
 case "$status" in
     *200*) ;;
     *)
-        cat "$WORK/vnetd.log"
+        cat "$WORK/sdnatd.log"
         die "unexpected http status: $status"
         ;;
 esac
@@ -161,8 +161,8 @@ for _ in $(seq 1 100); do
 done
 wait "$pid_d" 2>/dev/null || true
 pid_d=""
-grep -q 'forwarded=' "$WORK/vnetd.log" || die "missing forwarding counters"
-ok "vnetd stopped"
+grep -q 'forwarded=' "$WORK/sdnatd.log" || die "missing forwarding counters"
+ok "sdnatd stopped"
 
 kill "$pid_http" 2>/dev/null || true
 pid_http=""

@@ -14,40 +14,40 @@ app is not allowed to expose JNI types to the core. A host must therefore:
 - start and stop the data plane, and
 - receive lifecycle state without calling into Java per packet.
 
-The daemon already had the required lifecycle inline in `exec/vnetd/main.zig`.
+The daemon already had the required lifecycle inline in `exec/sdnatd/main.zig`.
 Duplicating it in a second host path would drift, so the lifecycle was extracted
-into `src/app/service.zig` and both `vnetd` and the C ABI use it.
+into `src/app/service.zig` and both `sdnatd` and the C ABI use it.
 
 ## Decision
 
-Expose a versioned C ABI in `src/ffi.zig` and `include/vnet.h`:
+Expose a versioned C ABI in `src/ffi.zig` and `include/sdnat.h`:
 
-- Opaque `vnet_t`, fixed-width status struct, stable error codes and event
-  codes. `VNET_ABI_VERSION` is 3.
+- Opaque `sdnat_t`, fixed-width status struct, stable error codes and event
+  codes. `SDNAT_ABI_VERSION` is 3.
 - ABI 2 renamed the exported symbols and types from `vnat_*` to `vrouter_*`
-  as part of the vNAT→vRouter rename (ADR-012). ABI 3 renames them to `vnet_*`
-  and the header to `include/vnet.h` for vNET (ADR-017); layout and lifecycle
+  as part of the vNAT→vRouter rename (ADR-012). ABI 3 renames them to `sdnat_*`
+  and the header to `include/sdnat.h` for SDNAT (ADR-017); layout and lifecycle
   are unchanged in both renames.
-- `vnet_create` parses and validates JSON. It accepts configured existing L3
+- `sdnat_create` parses and validates JSON. It accepts configured existing L3
   ports (`kind = "l3"`, no `create`) so the host can bind a descriptor.
-- `vnet_set_port_fd` binds a host-owned descriptor to a named L3 port before
-  startup. The descriptor is borrowed; vNET duplicates it with
-  `F_DUPFD_CLOEXEC` during `vnet_start`, so the host can close the original
+- `sdnat_set_port_fd` binds a host-owned descriptor to a named L3 port before
+  startup. The descriptor is borrowed; SDNAT duplicates it with
+  `F_DUPFD_CLOEXEC` during `sdnat_start`, so the host can close the original
   after startup. The duplicate is set non-blocking, which also affects the
   original descriptor because both share one open file description. A stopped
   handle reuses its bindings when restarted, so the descriptor must remain
-  valid for every `vnet_start`. Only L3 ports without `create` are eligible.
-- `vnet_start` blocks until the service is ready or startup fails.
-  `vnet_stop` is idempotent and joins the data-plane thread. `vnet_destroy`
+  valid for every `sdnat_start`. Only L3 ports without `create` are eligible.
+- `sdnat_start` blocks until the service is ready or startup fails.
+  `sdnat_stop` is idempotent and joins the data-plane thread. `sdnat_destroy`
   stops first and then releases native resources; it must not be called from
   an event callback.
 - Events are delivered on the data-plane thread. `STARTED` is delivered
-  before `vnet_start` returns. Callbacks must not call `vnet_*` functions other
-  than `vnet_get_status`; `vnet_stop` and `vnet_destroy` would deadlock.
+  before `sdnat_start` returns. Callbacks must not call `sdnat_*` functions other
+  than `sdnat_get_status`; `sdnat_stop` and `sdnat_destroy` would deadlock.
 - The FFI profile disables host mutations and hotplug monitoring
   (`allow_host_changes = false`, `enable_monitor = false`) and does not write
   daemon counter snapshots. A configured kernel offload requiring host
-  mutation fails with `VNET_ERR_UNSUPPORTED` instead of silently falling back.
+  mutation fails with `SDNAT_ERR_UNSUPPORTED` instead of silently falling back.
 - The library is built from `src/ffi.zig`; the CLI/daemon are built from
   `src/lib.zig`. The FFI module uses host pthreads for its service and DNS
   worker threads, without linking libc. It does not use Zig's raw-clone thread

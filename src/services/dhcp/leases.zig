@@ -5,7 +5,7 @@
 //! records are ignored on load.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 const message = @import("message.zig");
 const server_mod = @import("server.zig");
 

@@ -1,13 +1,14 @@
-# vNET
+# SDNAT
 
 A programmable virtual network implemented in Zig 0.16.x.
 
-vNET attaches network interfaces, forwards Ethernet, IPv4 and IPv6 traffic,
+SDNAT attaches network interfaces, forwards Ethernet, IPv4 and IPv6 traffic,
 and provides NAT, DHCP, DNS, and journal-backed host configuration. It runs as a
 daemon with a command-line interface and exposes a C ABI for embedded hosts.
 
-> **Renamed:** vNET was previously vRouter, and before that vNAT. The
-> pre-1.0 rename changes binary, ABI and default path names; see
+> **Renamed:** SDNAT was previously vNET, and before that vRouter (and vNAT
+> before that). The pre-1.0 rename changes binary, ABI and default path names;
+> see [ADR-019](docs/adr/019-project-rename-sdnat.md),
 > [ADR-017](docs/adr/017-project-rename-vnet.md) and
 > [ADR-012](docs/adr/012-project-rename.md).
 
@@ -18,12 +19,12 @@ daemon with a command-line interface and exposes a C ABI for embedded hosts.
   TTL/hop-limit processing
 - Userspace IPv4 connection tracking and garbage collection
 - Source NAT, destination NAT, port forwarding, and hairpin handling
-- Live `vnet nat add|del` updates with atomic config save and rollback
+- Live `sdnat nat add|del` updates with atomic config save and rollback
 - DHCPv4 server and client with lease persistence (DHCPv6 in v1.1)
 - DNS forwarding with cache, TCP fallback, and split zones
 - Atomic, journaled route/address/link changes with rollback
 - Cross-compilation for Linux and Android targets
-- Compiler-checked `vnet-*` shard modules with per-shard tests
+- Compiler-checked `sdnat-*` shard modules with per-shard tests
   ([ADR-018](docs/adr/018-shard-build-graph.md))
 
 ## Requirements
@@ -85,29 +86,29 @@ zig build -Dtarget=arm-linux-androideabi
 Validate a configuration:
 
 ```sh
-./zig-out/bin/vnet validate examples/minimal.json
+./zig-out/bin/sdnat validate examples/minimal.json
 ```
 
 Start the daemon:
 
 ```sh
-./zig-out/bin/vnetd -c examples/minimal.json
+./zig-out/bin/sdnatd -c examples/minimal.json
 ```
 
 Common commands:
 
 ```sh
-vnet status [-c <config>]
-vnet port list
-vnet iface set <dev> <cidr> [-c <config>]
-vnet route add <dst> [via <ip>] dev <dev> [-c <config>]
-vnet nat add|del masquerade --out <iface|port> [-c <config>]
-vnet nat add|del port-forward --proto tcp|udp --ext-port <n> [--to <ip:port>] [--in <name>] [-c <config>]
-vnet down [-c <config>]
-vnet doctor [--repair] [-c <config>]
-vnet journal [-c <config>]
-vnet dhcp status [-c <config>]
-vnet dns query <name> [-c <config>]
+sdnat status [-c <config>]
+sdnat port list
+sdnat iface set <dev> <cidr> [-c <config>]
+sdnat route add <dst> [via <ip>] dev <dev> [-c <config>]
+sdnat nat add|del masquerade --out <iface|port> [-c <config>]
+sdnat nat add|del port-forward --proto tcp|udp --ext-port <n> [--to <ip:port>] [--in <name>] [-c <config>]
+sdnat down [-c <config>]
+sdnat doctor [--repair] [-c <config>]
+sdnat journal [-c <config>]
+sdnat dhcp status [-c <config>]
+sdnat dns query <name> [-c <config>]
 ```
 
 ## Configuration

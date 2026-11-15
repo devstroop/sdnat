@@ -1,4 +1,4 @@
-# vNET — Architecture
+# SDNAT — Architecture
 
 > Router-first design. The overlay/P2P work from the earlier draft is deferred
 > to a future uplink module (ADR-004); the engine described here is the product.
@@ -18,7 +18,7 @@
    tables and swapped atomically.
 5. **Journal before mutation.** Every host change has a recorded inverse.
 6. **No GUI in v1, one API.** CLI and a Unix-socket API are the only v1
-   interfaces; the C ABI is for hosts (Android). A post-v1 optional `vnetweb`
+   interfaces; the C ABI is for hosts (Android). A post-v1 optional `sdnatweb`
    adapter is an unprivileged client of the same API (ADR-011).
 7. **Hostile input.** Decoders are bounds-checked and fuzzed; no `unreachable`
    on wire data.
@@ -26,7 +26,7 @@
 ## 2. Repository layout
 
 ```
-vnet/
+sdnat/
 ├── build.zig
 ├── build.zig.zon
 ├── test.zig
@@ -48,15 +48,15 @@ vnet/
 ├── src/
 │   ├── lib.zig                  public Zig API / shard composition
 │   ├── ffi.zig                  C ABI (R7)
-│   ├── shard_core.zig           vnet-core module root
-│   ├── shard_port.zig           vnet-port module root
-│   ├── shard_l2.zig             vnet-l2 module root
-│   ├── shard_l3.zig             vnet-l3 module root
-│   ├── shard_conntrack.zig      vnet-conntrack module root
-│   ├── shard_nat.zig            vnet-nat module root
-│   ├── shard_dhcp.zig           vnet-dhcp module root
-│   ├── shard_dns.zig            vnet-dns module root
-│   ├── shard_ctl.zig            vnet-ctl module root
+│   ├── shard_core.zig           sdnat-core module root
+│   ├── shard_port.zig           sdnat-port module root
+│   ├── shard_l2.zig             sdnat-l2 module root
+│   ├── shard_l3.zig             sdnat-l3 module root
+│   ├── shard_conntrack.zig      sdnat-conntrack module root
+│   ├── shard_nat.zig            sdnat-nat module root
+│   ├── shard_dhcp.zig           sdnat-dhcp module root
+│   ├── shard_dns.zig            sdnat-dns module root
+│   ├── shard_ctl.zig            sdnat-ctl module root
 │   ├── thread.zig               std/pthread thread backend
 │   ├── io.zig                   std.Io wiring, timers, cancellation
 │   ├── log.zig                  leveled text/JSON logger
@@ -133,10 +133,10 @@ vnet/
 │       ├── html.zig             template helpers
 │       └── assets/              embedded CSS, JS, HTMX 4
 ├── exec/
-│   ├── vnet/main.zig            CLI
-│   ├── vnetd/main.zig           daemon
-│   └── vnetweb/main.zig         POST-V1: unprivileged web admin (ADR-011)
-├── include/vnet.h
+│   ├── sdnat/main.zig            CLI
+│   ├── sdnatd/main.zig           daemon
+│   └── sdnatweb/main.zig         POST-V1: unprivileged web admin (ADR-011)
+├── include/sdnat.h
 ├── test/
 │   ├── examples.zig
 │   ├── fuzz.zig
@@ -170,17 +170,17 @@ the forwarding-engine split.
 
 | Module | Allowed dependencies |
 |---|---|
-| `vnet-core` | none |
-| `vnet-port`, `vnet-l2`, `vnet-l3`, `vnet-dhcp`, `vnet-conntrack` | core |
-| `vnet-nat` | core, l3, conntrack |
-| `vnet-dns` | core, thread |
-| `vnet-ctl` | core, port, dns, thread |
-| `vnet-fw`, `vnet-tunnel` | reserved; not built yet |
+| `sdnat-core` | none |
+| `sdnat-port`, `sdnat-l2`, `sdnat-l3`, `sdnat-dhcp`, `sdnat-conntrack` | core |
+| `sdnat-nat` | core, l3, conntrack |
+| `sdnat-dns` | core, thread |
+| `sdnat-ctl` | core, port, dns, thread |
+| `sdnat-fw`, `sdnat-tunnel` | reserved; not built yet |
 
 `src/lib.zig`, `src/app/service.zig` and `src/ffi.zig` are the composition
-layer. Shards may not import the composition layer, and `vnet-l3` may not import
-NAT, firewall or services. CLI and FFI builds map `vnet-thread` to different
-backends, so `vnet-dns` and `vnet-ctl` are built once per profile.
+layer. Shards may not import the composition layer, and `sdnat-l3` may not import
+NAT, firewall or services. CLI and FFI builds map `sdnat-thread` to different
+backends, so `sdnat-dns` and `sdnat-ctl` are built once per profile.
 
 ## 3. Core interfaces
 
@@ -372,7 +372,7 @@ CLI / API ──▶ config::diff ──▶ mutation list ──▶ journal ─�
   diff/apply path. Restart-required: ports, bridges, addresses.
 - Events: `port_up/down`, `link_change`, `addr_change`, `dhcp_lease`,
   `nat_expired`, `config_applied`, `error`.
-- Post-v1, an optional `vnetweb` adapter may expose this API over
+- Post-v1, an optional `sdnatweb` adapter may expose this API over
   authenticated HTTP. It remains an unprivileged client of the Unix socket and
   never mutates host state directly (ADR-011).
 
@@ -451,11 +451,11 @@ Wintun/Npcap, IP Helper, WFP/New-NetNat.
 
 - Strict schema, versioned; unknown keys rejected.
 - Validation is pure (no side effects) and runs before apply.
-- R2 journal: `$VNET_RUN_DIR/<instance>.journal` (default `/run/vnet`),
+- R2 journal: `$SDNAT_RUN_DIR/<instance>.journal` (default `/run/sdnat`),
   one forward op per JSON line, fsynced and atomically replaced before the
-  netlink mutation. `vnet down` derives inverses in reverse order; deletes are
+  netlink mutation. `sdnat down` derives inverses in reverse order; deletes are
   gated by journal ownership; a failed apply removes its record.
-- The R7 control socket, read-only status, `vnet doctor` diagnostics, and the
+- The R7 control socket, read-only status, `sdnat doctor` diagnostics, and the
   run-dir daemon lock are implemented. Pending/applied reconciliation and
   batch apply remain.
 - Secrets (if any) come from env/file descriptors, never the config file.
@@ -498,12 +498,12 @@ throughput or latency claim is made without that report and its host details.
 | Forwarding | Two-host netns ping + TCP (`scripts/test_route.sh`) |
 | IPv6 | NDP, ping6 and TCP repair (`scripts/test_ipv6.sh`) |
 | TUN | Kernel TUN peer ↔ veth host, ICMP + TCP (`scripts/test_tun.sh`) |
-| Journal | iface/route mutations + `vnet down` (`scripts/test_journal.sh`) |
+| Journal | iface/route mutations + `sdnat down` (`scripts/test_journal.sh`) |
 | NAT/conntrack | SNAT UDP/ICMP/TCP, DNAT/hairpin, live add/del (`scripts/nat_matrix.sh`) |
 | NAT matrix | Emulated EIM/EDM, hairpin, port-forward, exhaustion |
 | DHCP/DNS | Client emulators; lease persistence across restart |
 | Security/privilege | Journal rollback, default-deny policy, netns isolation |
-| Crash safety | kill -9, journal replay, `vnet doctor --repair` (`scripts/test_crash.sh`) |
+| Crash safety | kill -9, journal replay, `sdnat doctor --repair` (`scripts/test_crash.sh`) |
 | Android | Emulator (VPN mode), rooted device (root mode) |
 | Performance | `iperf3`, `pktgen`, 64 B and 1500 B, multi-flow |
 
@@ -528,4 +528,5 @@ throughput or latency claim is made without that report and its host details.
 | [015](adr/015-control-protocol-v3.md) | Versioned control protocol and staged writes |
 | [016](adr/016-network-model-and-staged-config.md) | Network model and staged configuration |
 | [017](adr/017-project-rename-vnet.md) | Rename vRouter to vNET |
+| [019](adr/019-project-rename-sdnat.md) | Rename vNET to SDNAT |
 | [018](adr/018-shard-build-graph.md) | Named shard build graph |

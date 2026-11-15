@@ -1,4 +1,4 @@
-//! vnet-nat: source/destination translation and checksum repair.
+//! sdnat-nat: source/destination translation and checksum repair.
 
 pub const nat = @import("nat/nat.zig");
 

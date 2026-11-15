@@ -36,9 +36,9 @@ pub const PortError = error{
     OutOfMemory,
 };
 
-pub const VnetError = ConfigError || PortError;
+pub const SdnatError = ConfigError || PortError;
 
 test "error sets compose" {
-    const err: VnetError = error.UnknownField;
-    try @import("std").testing.expectEqual(@as(VnetError, error.UnknownField), err);
+    const err: SdnatError = error.UnknownField;
+    try @import("std").testing.expectEqual(@as(SdnatError, error.UnknownField), err);
 }

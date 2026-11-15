@@ -2,7 +2,7 @@
 //! never write past the caller's buffer.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 
 pub const op_request: u8 = 1;
 pub const op_reply: u8 = 2;
@@ -192,7 +192,7 @@ pub const Builder = struct {
         @memcpy(buf[236..240], &magic_cookie);
 
         var self = Builder{ .buf = buf, .len = 240 };
-        try self.addOption(53, &.{@intFromEnum(typ)});
+        try self.addOption(53, &.{@backingInt(typ)});
         return self;
     }
 

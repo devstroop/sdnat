@@ -6,7 +6,7 @@
 //! source-MAC refresh updates the timestamp but does not move the slot.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 
 const none: u16 = std.math.maxInt(u16);
 

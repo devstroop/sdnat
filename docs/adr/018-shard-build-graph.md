@@ -6,19 +6,19 @@
 
 ## Context
 
-vNET is still compiled as one Zig module rooted at `src/lib.zig`. Every file can
+SDNAT is still compiled as one Zig module rooted at `src/lib.zig`. Every file can
 reach every other file with a relative import, so the documented L2/L3/NAT/DHCP/
 DNS/control split is a directory convention rather than a compiler-checked
 boundary. `src/l3/forward.zig` alone is the forwarding engine, bridge, firewall
 glue and service integration, which makes the dependency direction impossible
 to verify.
 
-The rename to vNET (ADR-017) fixed the product identity. This ADR starts the
+The rename to SDNAT (ADR-017) fixed the product identity. This ADR starts the
 next step: give each subsystem an explicit module boundary and a build graph
 that fails when a dependency is not declared.
 
 Phase 1 is deliberately a **build-graph change, not a source-tree move**. The
-files stay where they are and the public `vnet` module keeps its current
+files stay where they are and the public `sdnat` module keeps its current
 exports. This keeps the change reviewable and lets the forwarding-engine split
 land separately.
 
@@ -36,42 +36,42 @@ them reach the existing `src/port/`, `src/l3/`, `src/control/` and
 
 | Module | Responsibility | Allowed dependencies |
 |---|---|---|
-| `vnet-core` | Types, errors, `std.Io` helpers, logging, version, config schema/parser/writer/store | none |
-| `vnet-port` | Port vtable, memory/fd ports, buffer pool, Linux ports, port manager | core |
-| `vnet-l2` | Ethernet/802.1Q parsing, STP; bridge/VLAN split follows | core |
-| `vnet-l3` | IPv4/IPv6/ARP/NDP/FIB/ICMP/rate parsing and lookup; no forwarding engine | core |
-| `vnet-conntrack` | Flow table, timeouts, GC and counters | core |
-| `vnet-nat` | SNAT/DNAT and checksum rewrites | core, l3, conntrack |
-| `vnet-dhcp` | DHCPv4 message, server and lease persistence | core |
-| `vnet-dns` | DNS message, cache, probe and forwarder | core, thread |
-| `vnet-ctl` | Unix control socket, protocol, transactions, journal, host/offload changes, read model | core, port, dns, thread |
-| `vnet-fw` | Ordered firewall rules and matching | core, l3, conntrack |
-| `vnet-tunnel` | Future overlay/P2P uplink (ADR-004) | core, port |
+| `sdnat-core` | Types, errors, `std.Io` helpers, logging, version, config schema/parser/writer/store | none |
+| `sdnat-port` | Port vtable, memory/fd ports, buffer pool, Linux ports, port manager | core |
+| `sdnat-l2` | Ethernet/802.1Q parsing, STP; bridge/VLAN split follows | core |
+| `sdnat-l3` | IPv4/IPv6/ARP/NDP/FIB/ICMP/rate parsing and lookup; no forwarding engine | core |
+| `sdnat-conntrack` | Flow table, timeouts, GC and counters | core |
+| `sdnat-nat` | SNAT/DNAT and checksum rewrites | core, l3, conntrack |
+| `sdnat-dhcp` | DHCPv4 message, server and lease persistence | core |
+| `sdnat-dns` | DNS message, cache, probe and forwarder | core, thread |
+| `sdnat-ctl` | Unix control socket, protocol, transactions, journal, host/offload changes, read model | core, port, dns, thread |
+| `sdnat-fw` | Ordered firewall rules and matching | core, l3, conntrack |
+| `sdnat-tunnel` | Future overlay/P2P uplink (ADR-004) | core, port |
 
-`vnet-fw` and `vnet-tunnel` are reserved names but not instantiated in phase 1.
+`sdnat-fw` and `sdnat-tunnel` are reserved names but not instantiated in phase 1.
 Firewall matching currently lives in the forwarding engine; it moves out when
 `forward.zig` is split.
 
 The following composition rules apply:
 
-1. **No cycles.** The build graph is a DAG. `vnet-l3` must never import NAT,
+1. **No cycles.** The build graph is a DAG. `sdnat-l3` must never import NAT,
    firewall or services; NAT/firewall depend on L3 packet helpers, not the
    reverse.
 2. **Composition belongs above the shards.** `src/lib.zig`, `src/app/` and
    `src/ffi.zig` compose shards. They may import multiple shards; shards may not
    reach back into the composition root.
-3. **The control plane owns mutation.** `vnet-ctl` is the only shard that
+3. **The control plane owns mutation.** `sdnat-ctl` is the only shard that
    journals host changes. Data-plane shards consume immutable snapshots or
    return typed actions; they do not call the journal.
 4. **No hot-path allocation is introduced by the boundary.** Shard APIs pass
    slices, ids and fixed-size values; allocations remain control-plane work.
-5. **Thread backend is a product profile.** CLI modules map `vnet-thread` to the
+5. **Thread backend is a product profile.** CLI modules map `sdnat-thread` to the
    non-pthread backend; FFI modules map it to the pthread backend. `dns` and
    `ctl` are instantiated once per profile because they spawn threads; pure
    shards are shared.
 6. **The public umbrella stays stable.** `src/lib.zig` re-exports the shard
-   surfaces, so `exec/vnet`, `exec/vnetd`, tests and existing Zig consumers do
-   not change. `include/vnet.h` and the C ABI are unchanged by this ADR.
+   surfaces, so `exec/sdnat`, `exec/sdnatd`, tests and existing Zig consumers do
+   not change. `include/sdnat.h` and the C ABI are unchanged by this ADR.
 7. **Every shard has its own test artifact.** `zig build test` runs shard tests,
    the umbrella tests, fuzz smoke and the FFI smoke. A shard root imports its
    implementation files in a `test` block so tests cannot silently disappear
@@ -80,11 +80,11 @@ The following composition rules apply:
 ### Phase 1 graph
 
 ```
-vnet-core ──▶ vnet-port, vnet-l2, vnet-l3, vnet-conntrack, vnet-dhcp
-vnet-l3 + vnet-conntrack ──▶ vnet-nat
-vnet-l3 + vnet-conntrack ──▶ vnet-fw (reserved)
-vnet-thread ──▶ vnet-dns
-vnet-core + vnet-port + vnet-dns + vnet-thread ──▶ vnet-ctl
+sdnat-core ──▶ sdnat-port, sdnat-l2, sdnat-l3, sdnat-conntrack, sdnat-dhcp
+sdnat-l3 + sdnat-conntrack ──▶ sdnat-nat
+sdnat-l3 + sdnat-conntrack ──▶ sdnat-fw (reserved)
+sdnat-thread ──▶ sdnat-dns
+sdnat-core + sdnat-port + sdnat-dns + sdnat-thread ──▶ sdnat-ctl
 ```
 
 The forwarding engine (`src/l3/forward.zig`), `src/app/service.zig` and
@@ -97,13 +97,13 @@ The forwarding engine (`src/l3/forward.zig`), `src/app/service.zig` and
    tests. No implementation file moves, no behavior change. FFI thread
    selection is preserved.
 2. **Split the engine.** Move bridge/VLAN and firewall matching out of
-   `forward.zig` into `vnet-l2` and `vnet-fw`; make the forwarding engine an
+   `forward.zig` into `sdnat-l2` and `sdnat-fw`; make the forwarding engine an
    explicit composition module. Convert direct service calls to typed events
    where they cross the data/control boundary.
 3. **Product profiles and headers.** Add build-time shard selection and
    manifests for `gateway`, `dns-only`, `dhcp-only`, `nat-only`, `switch`,
    `edge` and `hotspot`; generate per-shard C headers from one source.
-4. **Tunnel.** Add `vnet-tunnel` as a future uplink shard once ADR-004 work
+4. **Tunnel.** Add `sdnat-tunnel` as a future uplink shard once ADR-004 work
    starts.
 
 ## Consequences

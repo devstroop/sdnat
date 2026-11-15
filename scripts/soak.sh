@@ -24,16 +24,16 @@ case "${1:-}" in
     -h|--help) show_usage; exit 0 ;;
 esac
 
-if [ "${VNET_SOAK_NETNS:-0}" != "1" ]; then
+if [ "${SDNAT_SOAK_NETNS:-0}" != "1" ]; then
     ZIG="${ZIG:-zig}"
     command -v "$ZIG" >/dev/null 2>&1 || {
         echo "FAIL: zig not found (set ZIG=/path/to/zig)" >&2
         exit 1
     }
     if [ "${EUID}" -eq 0 ]; then
-        exec unshare -n env VNET_SOAK_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+        exec unshare -n env SDNAT_SOAK_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
     fi
-    exec unshare -rn env VNET_SOAK_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
+    exec unshare -rn env SDNAT_SOAK_NETNS=1 "ZIG=$(command -v "$ZIG")" bash "$0" "$@"
 fi
 
 ZIG="${ZIG:-zig}"
@@ -46,8 +46,8 @@ WORK="$(mktemp -d)"
 BIN="$ROOT/zig-out/bin"
 LOADGEN="$WORK/loadgen"
 OFFLOAD_HELPER="$WORK/netdev_offload"
-CFG="$WORK/vnet-soak.json"
-LOG="$WORK/vnetd.log"
+CFG="$WORK/sdnat-soak.json"
+LOG="$WORK/sdnatd.log"
 ECHO_LOG="$WORK/echo.log"
 DURATION="24h"
 INTERVAL="5"
@@ -136,7 +136,7 @@ if [ "$DO_BUILD" = "1" ]; then
     log "build release"
     (cd "$ROOT" && "$ZIG" build --release=fast) || die "build failed"
 fi
-[ -x "$BIN/vnetd" ] || die "missing $BIN/vnetd (run without --no-build)"
+[ -x "$BIN/sdnatd" ] || die "missing $BIN/sdnatd (run without --no-build)"
 cc -O2 -std=c11 -Wall -Wextra -Werror -o "$LOADGEN" "$ROOT/scripts/loadgen.c" ||
     die "failed to build loadgen"
 cc -O2 -std=c11 -Wall -Wextra -Werror -o "$OFFLOAD_HELPER" "$ROOT/scripts/netdev_offload.c" ||
@@ -158,26 +158,26 @@ start_host() {
     echo $!
 }
 
-start_vnetd() {
+start_sdnatd() {
     : >"$LOG"
-    "$BIN/vnetd" -c "$CFG" >"$LOG" 2>&1 &
+    "$BIN/sdnatd" -c "$CFG" >"$LOG" 2>&1 &
     vpid=$!
     for _ in $(seq 1 150); do
         grep -q "started instance" "$LOG" && return 0
         if ! kill -0 "$vpid" 2>/dev/null; then
             cat "$LOG" >&2
-            die "vnetd exited during startup"
+            die "sdnatd exited during startup"
         fi
         sleep 0.02
     done
     cat "$LOG" >&2
-    die "vnetd did not start"
+    die "sdnatd did not start"
 }
 
 check_daemon() {
     if ! kill -0 "$vpid" 2>/dev/null; then
         cat "$LOG" >&2
-        die "vnetd exited"
+        die "sdnatd exited"
     fi
 }
 
@@ -193,16 +193,16 @@ check_traffic() {
 
 check_nat_edit() {
     local out
-    "$BIN/vnet" nat add port-forward --proto tcp --ext-port 8081 \
+    "$BIN/sdnat" nat add port-forward --proto tcp --ext-port 8081 \
         --to 10.0.1.2:8080 -c "$CFG" >/dev/null || die "nat add failed"
-    out="$("$BIN/vnet" nat list -c "$CFG")" || die "nat list failed"
+    out="$("$BIN/sdnat" nat list -c "$CFG")" || die "nat list failed"
     case "$out" in
         *8081*) ;;
         *) die "added port-forward missing from nat list" ;;
     esac
-    "$BIN/vnet" nat del port-forward --proto tcp --ext-port 8081 -c "$CFG" >/dev/null ||
+    "$BIN/sdnat" nat del port-forward --proto tcp --ext-port 8081 -c "$CFG" >/dev/null ||
         die "nat del failed"
-    out="$("$BIN/vnet" nat list -c "$CFG")" || die "nat list failed"
+    out="$("$BIN/sdnat" nat list -c "$CFG")" || die "nat list failed"
     case "$out" in
         *8081*) die "deleted port-forward still present" ;;
     esac
@@ -217,7 +217,7 @@ flap_link() {
 }
 
 restart_daemon() {
-    kill -TERM "$vpid" 2>/dev/null || die "vnetd restart: not running"
+    kill -TERM "$vpid" 2>/dev/null || die "sdnatd restart: not running"
     for _ in $(seq 1 150); do
         kill -0 "$vpid" 2>/dev/null || break
         sleep 0.02
@@ -225,10 +225,10 @@ restart_daemon() {
     if kill -0 "$vpid" 2>/dev/null; then
         kill -KILL "$vpid" 2>/dev/null || true
         wait "$vpid" 2>/dev/null || true
-        die "vnetd did not stop"
+        die "sdnatd did not stop"
     fi
     wait "$vpid" 2>/dev/null || true
-    start_vnetd
+    start_sdnatd
     check_traffic
 }
 
@@ -249,9 +249,9 @@ cat >"$CFG" <<'EOF'
 }
 EOF
 
-VNET_RUN_DIR="$WORK/run"
-export VNET_RUN_DIR
-rm -rf "$VNET_RUN_DIR"
+SDNAT_RUN_DIR="$WORK/run"
+export SDNAT_RUN_DIR
+rm -rf "$SDNAT_RUN_DIR"
 
 log "build topology"
 ip link set lo up
@@ -275,7 +275,7 @@ nsenter -t "$pidA" -n "$OFFLOAD_HELPER" eth0 off || die "disable offloads on A"
 nsenter -t "$pidB" -n "$OFFLOAD_HELPER" eth0 off || die "disable offloads on B"
 
 log "start daemon"
-start_vnetd
+start_sdnatd
 nsenter -t "$pidB" -n "$LOADGEN" udp-echo 10.0.2.2 5299 >"$ECHO_LOG" 2>&1 &
 echo_pid=$!
 for _ in $(seq 1 100); do
@@ -339,11 +339,11 @@ for _ in $(seq 1 150); do
 done
 if kill -0 "$vpid" 2>/dev/null; then
     kill -KILL "$vpid" 2>/dev/null || true
-    die "vnetd did not stop at end of soak"
+    die "sdnatd did not stop at end of soak"
 fi
 wait "$vpid" 2>/dev/null || true
 vpid=""
-"$BIN/vnet" doctor -c "$CFG" >/dev/null || die "doctor failed after soak"
+"$BIN/sdnat" doctor -c "$CFG" >/dev/null || die "doctor failed after soak"
 
 printf 'PASS soak duration=%ss iterations=%d flaps=%d restarts=%d nat_edits=%d\n' \
     "$DURATION_SECS" "$iterations" "$flaps" "$restarts" "$nat_edits"

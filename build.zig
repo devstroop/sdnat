@@ -50,79 +50,79 @@ pub fn build(b: *std.Build) void {
     thread_ffi.addImport("build_options", ffi_options_mod);
 
     const port_mod = createModule(b, "src/shard_port.zig", target, optimize);
-    port_mod.addImport("vnet-core", core_mod);
+    port_mod.addImport("sdnat-core", core_mod);
 
     const l2_mod = createModule(b, "src/shard_l2.zig", target, optimize);
-    l2_mod.addImport("vnet-core", core_mod);
+    l2_mod.addImport("sdnat-core", core_mod);
 
     const l3_mod = createModule(b, "src/shard_l3.zig", target, optimize);
-    l3_mod.addImport("vnet-core", core_mod);
+    l3_mod.addImport("sdnat-core", core_mod);
 
     const conntrack_mod = createModule(b, "src/shard_conntrack.zig", target, optimize);
-    conntrack_mod.addImport("vnet-core", core_mod);
+    conntrack_mod.addImport("sdnat-core", core_mod);
 
     const nat_mod = createModule(b, "src/shard_nat.zig", target, optimize);
-    nat_mod.addImport("vnet-core", core_mod);
-    nat_mod.addImport("vnet-l3", l3_mod);
-    nat_mod.addImport("vnet-conntrack", conntrack_mod);
+    nat_mod.addImport("sdnat-core", core_mod);
+    nat_mod.addImport("sdnat-l3", l3_mod);
+    nat_mod.addImport("sdnat-conntrack", conntrack_mod);
 
     const dhcp_mod = createModule(b, "src/shard_dhcp.zig", target, optimize);
-    dhcp_mod.addImport("vnet-core", core_mod);
+    dhcp_mod.addImport("sdnat-core", core_mod);
 
     const dns_cli = createModule(b, "src/shard_dns.zig", target, optimize);
-    dns_cli.addImport("vnet-core", core_mod);
-    dns_cli.addImport("vnet-thread", thread_cli);
+    dns_cli.addImport("sdnat-core", core_mod);
+    dns_cli.addImport("sdnat-thread", thread_cli);
     const dns_ffi = createModule(b, "src/shard_dns.zig", target, optimize);
-    dns_ffi.addImport("vnet-core", core_mod);
-    dns_ffi.addImport("vnet-thread", thread_ffi);
+    dns_ffi.addImport("sdnat-core", core_mod);
+    dns_ffi.addImport("sdnat-thread", thread_ffi);
 
     const ctl_cli = createModule(b, "src/shard_ctl.zig", target, optimize);
-    ctl_cli.addImport("vnet-core", core_mod);
-    ctl_cli.addImport("vnet-port", port_mod);
-    ctl_cli.addImport("vnet-dns", dns_cli);
-    ctl_cli.addImport("vnet-thread", thread_cli);
+    ctl_cli.addImport("sdnat-core", core_mod);
+    ctl_cli.addImport("sdnat-port", port_mod);
+    ctl_cli.addImport("sdnat-dns", dns_cli);
+    ctl_cli.addImport("sdnat-thread", thread_cli);
     const ctl_ffi = createModule(b, "src/shard_ctl.zig", target, optimize);
-    ctl_ffi.addImport("vnet-core", core_mod);
-    ctl_ffi.addImport("vnet-port", port_mod);
-    ctl_ffi.addImport("vnet-dns", dns_ffi);
-    ctl_ffi.addImport("vnet-thread", thread_ffi);
+    ctl_ffi.addImport("sdnat-core", core_mod);
+    ctl_ffi.addImport("sdnat-port", port_mod);
+    ctl_ffi.addImport("sdnat-dns", dns_ffi);
+    ctl_ffi.addImport("sdnat-thread", thread_ffi);
 
-    const vnet_mod = createModule(b, "src/lib.zig", target, optimize);
-    vnet_mod.addImport("vnet-core", core_mod);
-    vnet_mod.addImport("vnet-port", port_mod);
-    vnet_mod.addImport("vnet-l2", l2_mod);
-    vnet_mod.addImport("vnet-l3", l3_mod);
-    vnet_mod.addImport("vnet-conntrack", conntrack_mod);
-    vnet_mod.addImport("vnet-nat", nat_mod);
-    vnet_mod.addImport("vnet-dhcp", dhcp_mod);
-    vnet_mod.addImport("vnet-dns", dns_cli);
-    vnet_mod.addImport("vnet-ctl", ctl_cli);
+    const sdnat_mod = createModule(b, "src/lib.zig", target, optimize);
+    sdnat_mod.addImport("sdnat-core", core_mod);
+    sdnat_mod.addImport("sdnat-port", port_mod);
+    sdnat_mod.addImport("sdnat-l2", l2_mod);
+    sdnat_mod.addImport("sdnat-l3", l3_mod);
+    sdnat_mod.addImport("sdnat-conntrack", conntrack_mod);
+    sdnat_mod.addImport("sdnat-nat", nat_mod);
+    sdnat_mod.addImport("sdnat-dhcp", dhcp_mod);
+    sdnat_mod.addImport("sdnat-dns", dns_cli);
+    sdnat_mod.addImport("sdnat-ctl", ctl_cli);
 
     const ffi_mod = createModule(b, "src/ffi.zig", target, optimize);
-    ffi_mod.addImport("vnet-core", core_mod);
-    ffi_mod.addImport("vnet-port", port_mod);
-    ffi_mod.addImport("vnet-l2", l2_mod);
-    ffi_mod.addImport("vnet-l3", l3_mod);
-    ffi_mod.addImport("vnet-conntrack", conntrack_mod);
-    ffi_mod.addImport("vnet-nat", nat_mod);
-    ffi_mod.addImport("vnet-dhcp", dhcp_mod);
-    ffi_mod.addImport("vnet-dns", dns_ffi);
-    ffi_mod.addImport("vnet-ctl", ctl_ffi);
-    ffi_mod.addImport("vnet-thread", thread_ffi);
+    ffi_mod.addImport("sdnat-core", core_mod);
+    ffi_mod.addImport("sdnat-port", port_mod);
+    ffi_mod.addImport("sdnat-l2", l2_mod);
+    ffi_mod.addImport("sdnat-l3", l3_mod);
+    ffi_mod.addImport("sdnat-conntrack", conntrack_mod);
+    ffi_mod.addImport("sdnat-nat", nat_mod);
+    ffi_mod.addImport("sdnat-dhcp", dhcp_mod);
+    ffi_mod.addImport("sdnat-dns", dns_ffi);
+    ffi_mod.addImport("sdnat-ctl", ctl_ffi);
+    ffi_mod.addImport("sdnat-thread", thread_ffi);
 
     const static_lib = b.addLibrary(.{
         .linkage = .static,
-        .name = "vnet",
+        .name = "sdnat",
         .root_module = ffi_mod,
     });
     b.installArtifact(static_lib);
-    static_lib.installHeader(b.path("include/vnet.h"), "vnet.h");
+    static_lib.installHeader(b.path("include/sdnat.h"), "sdnat.h");
     const static_lib_step = b.step("static-lib", "Build the static library");
     static_lib_step.dependOn(&b.addInstallArtifact(static_lib, .{}).step);
 
     const shared_lib = b.addLibrary(.{
         .linkage = .dynamic,
-        .name = "vnet",
+        .name = "sdnat",
         .root_module = ffi_mod,
         .version = semantic_version,
     });
@@ -132,11 +132,11 @@ pub fn build(b: *std.Build) void {
     shared_lib_step.dependOn(&b.addInstallArtifact(shared_lib, .{}).step);
 
     if (is_linux and !is_android) {
-        const exe_mod = createModule(b, "exec/vnet/main.zig", target, optimize);
-        exe_mod.addImport("vnet", vnet_mod);
+        const exe_mod = createModule(b, "exec/sdnat/main.zig", target, optimize);
+        exe_mod.addImport("sdnat", sdnat_mod);
 
         const exe = b.addExecutable(.{
-            .name = "vnet",
+            .name = "sdnat",
             .root_module = exe_mod,
         });
         b.installArtifact(exe);
@@ -149,27 +149,27 @@ pub fn build(b: *std.Build) void {
             run_cmd.addPassthruArgs();
         }
 
-        const run_step = b.step("run", "Run vNET");
+        const run_step = b.step("run", "Run SDNAT");
         run_step.dependOn(&run_cmd.step);
 
-        const daemon_mod = createModule(b, "exec/vnetd/main.zig", target, optimize);
-        daemon_mod.addImport("vnet", vnet_mod);
+        const daemon_mod = createModule(b, "exec/sdnatd/main.zig", target, optimize);
+        daemon_mod.addImport("sdnat", sdnat_mod);
 
         const daemon = b.addExecutable(.{
-            .name = "vnetd",
+            .name = "sdnatd",
             .root_module = daemon_mod,
         });
         b.installArtifact(daemon);
 
         const web_mod = createModule(b, "src/web/root.zig", target, optimize);
-        web_mod.addImport("vnet-core", core_mod);
-        web_mod.addImport("vnet-ctl", ctl_cli);
+        web_mod.addImport("sdnat-core", core_mod);
+        web_mod.addImport("sdnat-ctl", ctl_cli);
 
-        const web_exe_mod = createModule(b, "exec/vnetweb/main.zig", target, optimize);
+        const web_exe_mod = createModule(b, "exec/sdnatweb/main.zig", target, optimize);
         web_exe_mod.addImport("web", web_mod);
         web_exe_mod.addImport("build_options", cli_options_mod);
         const web_exe = b.addExecutable(.{
-            .name = "vnetweb",
+            .name = "sdnatweb",
             .root_module = web_exe_mod,
         });
         const web_step = b.step("web", "Build the HTMX web admin");
@@ -184,16 +184,16 @@ pub fn build(b: *std.Build) void {
     }
 
     const test_mod = createModule(b, "test.zig", target, optimize);
-    test_mod.addImport("vnet-core", core_mod);
-    test_mod.addImport("vnet-port", port_mod);
-    test_mod.addImport("vnet-l2", l2_mod);
-    test_mod.addImport("vnet-l3", l3_mod);
-    test_mod.addImport("vnet-conntrack", conntrack_mod);
-    test_mod.addImport("vnet-nat", nat_mod);
-    test_mod.addImport("vnet-dhcp", dhcp_mod);
-    test_mod.addImport("vnet-dns", dns_cli);
-    test_mod.addImport("vnet-ctl", ctl_cli);
-    test_mod.addImport("vnet-thread", thread_cli);
+    test_mod.addImport("sdnat-core", core_mod);
+    test_mod.addImport("sdnat-port", port_mod);
+    test_mod.addImport("sdnat-l2", l2_mod);
+    test_mod.addImport("sdnat-l3", l3_mod);
+    test_mod.addImport("sdnat-conntrack", conntrack_mod);
+    test_mod.addImport("sdnat-nat", nat_mod);
+    test_mod.addImport("sdnat-dhcp", dhcp_mod);
+    test_mod.addImport("sdnat-dns", dns_cli);
+    test_mod.addImport("sdnat-ctl", ctl_cli);
+    test_mod.addImport("sdnat-thread", thread_cli);
 
     const test_filter = b.option([]const u8, "test-filter", "Only run tests containing this substring");
     const test_filters: []const []const u8 = if (test_filter) |f| &.{f} else &.{};
@@ -231,15 +231,15 @@ pub fn build(b: *std.Build) void {
     // weakening diagnostics for the normal unit suite.
     const fuzz_mod = createModule(b, "fuzz.zig", target, optimize);
     fuzz_mod.error_tracing = false;
-    fuzz_mod.addImport("vnet-core", core_mod);
-    fuzz_mod.addImport("vnet-port", port_mod);
-    fuzz_mod.addImport("vnet-l2", l2_mod);
-    fuzz_mod.addImport("vnet-l3", l3_mod);
-    fuzz_mod.addImport("vnet-conntrack", conntrack_mod);
-    fuzz_mod.addImport("vnet-nat", nat_mod);
-    fuzz_mod.addImport("vnet-dhcp", dhcp_mod);
-    fuzz_mod.addImport("vnet-dns", dns_cli);
-    fuzz_mod.addImport("vnet-ctl", ctl_cli);
+    fuzz_mod.addImport("sdnat-core", core_mod);
+    fuzz_mod.addImport("sdnat-port", port_mod);
+    fuzz_mod.addImport("sdnat-l2", l2_mod);
+    fuzz_mod.addImport("sdnat-l3", l3_mod);
+    fuzz_mod.addImport("sdnat-conntrack", conntrack_mod);
+    fuzz_mod.addImport("sdnat-nat", nat_mod);
+    fuzz_mod.addImport("sdnat-dhcp", dhcp_mod);
+    fuzz_mod.addImport("sdnat-dns", dns_cli);
+    fuzz_mod.addImport("sdnat-ctl", ctl_cli);
 
     // The self-hosted backend used by Debug emits no coverage counters, which
     // makes `--fuzz` abort with "pcs_len was zero". LLVM provides the counters.

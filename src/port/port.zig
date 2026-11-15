@@ -5,8 +5,8 @@
 //! AF_PACKET, TUN/TAP, VpnService fds and in-memory test ports.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
-const PortError = @import("vnet-core").PortError;
+const types = @import("sdnat-core").types;
+const PortError = @import("sdnat-core").PortError;
 
 pub const PortId = types.PortId;
 

@@ -2,9 +2,9 @@
 //! one-time confirmation/idempotency state used by the v3 write path.
 
 const std = @import("std");
-const config_parse = @import("vnet-core").config_parse;
-const config_validate = @import("vnet-core").config_validate;
-const config_store = @import("vnet-core").config_store;
+const config_parse = @import("sdnat-core").config_parse;
+const config_validate = @import("sdnat-core").config_validate;
+const config_store = @import("sdnat-core").config_store;
 
 pub const max_diff_bytes: usize = 8 * 1024 * 1024;
 pub const token_hex_len = 64;
@@ -37,15 +37,15 @@ pub const Affected = struct {
     bits: u16 = 0,
 
     pub fn add(self: *Affected, field: Field) void {
-        self.bits |= @as(u16, 1) << @intFromEnum(field);
+        self.bits |= @as(u16, 1) << @backingInt(field);
     }
 
     pub fn contains(self: Affected, field: Field) bool {
-        return self.bits & (@as(u16, 1) << @intFromEnum(field)) != 0;
+        return self.bits & (@as(u16, 1) << @backingInt(field)) != 0;
     }
 
     pub fn restartRequired(self: Affected) bool {
-        return self.bits & ~(@as(u16, 1) << @intFromEnum(Field.nat)) != 0;
+        return self.bits & ~(@as(u16, 1) << @backingInt(Field.nat)) != 0;
     }
 
     pub fn count(self: Affected) usize {

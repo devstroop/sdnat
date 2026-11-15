@@ -1,8 +1,11 @@
 # ADR-017 — Rename vRouter to vNET
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-019](019-project-rename-sdnat.md)
 - **Date:** 2026-10-26
 - **Supersedes:** [ADR-012](012-project-rename.md)
+
+> Historical record. The project was renamed again from vNET to SDNAT; see
+> ADR-019. The names below describe the vRouter→vNET transition only.
 
 ## Context
 

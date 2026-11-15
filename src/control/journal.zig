@@ -1,9 +1,9 @@
 //! Journal of host mutations. Each line is the forward operation applied by
-//! vNET; rollback derives the inverse. Lines are written (fsync) before the
+//! SDNAT; rollback derives the inverse. Lines are written (fsync) before the
 //! kernel mutation, so a crash leaves enough information to repair state.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 
 pub const Error = error{
     InvalidJournal,
@@ -302,7 +302,7 @@ pub const Store = struct {
     }
 
     /// Drops the last record. Used when a mutation failed after the journal
-    /// write, so rollback does not touch state that vNET never applied.
+    /// write, so rollback does not touch state that SDNAT never applied.
     pub fn removeLast(self: *Store, io: std.Io) !void {
         const contents_opt = try self.contents(io);
         const data = contents_opt orelse return;
@@ -563,9 +563,9 @@ test "journal line round trip" {
         .{ .addr_add = .{ .dev = "ra", .prefix = testIpPrefix("10.0.1.1/24") } },
         .{ .addr_del = .{ .dev = "ra", .prefix = testIpPrefix("10.0.1.1/24") } },
         .{ .link = .{ .dev = "ra", .up = true } },
-        .{ .link_add = .{ .dev = "vnetbr0", .kind = .bridge, .stp = true, .vlan_filtering = true } },
-        .{ .link_add = .{ .dev = "vnetp0", .kind = .veth, .peer = "vnetb0" } },
-        .{ .link_master = .{ .dev = "eth1", .master = "vnetbr0" } },
+        .{ .link_add = .{ .dev = "sdnatbr0", .kind = .bridge, .stp = true, .vlan_filtering = true } },
+        .{ .link_add = .{ .dev = "sdnatp0", .kind = .veth, .peer = "sdnatb0" } },
+        .{ .link_master = .{ .dev = "eth1", .master = "sdnatbr0" } },
         .{ .link_master = .{ .dev = "eth1", .master = null } },
         .{ .bridge_vlan = .{ .dev = "eth1", .vid = 10, .pvid = true, .untagged = true } },
         .{ .route_add = .{

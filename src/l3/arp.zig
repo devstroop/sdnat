@@ -3,7 +3,7 @@
 //! and the datapath only reads them.
 
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 
 pub const Error = error{
     Truncated,
@@ -59,7 +59,7 @@ pub fn write(
     writeU16(buf, 2, 0x0800);
     buf[4] = 6;
     buf[5] = 4;
-    writeU16(buf, 6, @intFromEnum(operation));
+    writeU16(buf, 6, @backingInt(operation));
     @memcpy(buf[8..14], &sender_mac.bytes);
     writeU32(buf, 14, sender_ip.value);
     @memcpy(buf[18..24], &target_mac.bytes);

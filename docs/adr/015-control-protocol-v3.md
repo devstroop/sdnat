@@ -147,7 +147,7 @@ On startup, before loading the datapath:
   `revision_before`, ensure the audit entry exists and clear the pending
   record.
 - **Hash matches neither revision:** fail closed with `config_conflict` and
-  require `vnet doctor --repair`. Do not overwrite an externally changed
+  require `sdnat doctor --repair`. Do not overwrite an externally changed
   config and do not start the datapath with an ambiguous pending record.
 
 A committed config with `restart.pending` stays in place. The daemon reports
@@ -205,19 +205,19 @@ creates a `0700` directory.
 
 | Path | Mode | Owner:Group | Purpose |
 |---|---|---|---|
-| state dir | `0750` | `root:vnet` | Traverse/list for the read-only and write web accounts |
-| `control.sock` | `0660` | `root:vnet-admin` | Read/write control |
-| `control-ro.sock` | `0660` | `root:vnet` | Read-only control |
+| state dir | `0750` | `root:sdnat` | Traverse/list for the read-only and write web accounts |
+| `control.sock` | `0660` | `root:sdnat-admin` | Read/write control |
+| `control-ro.sock` | `0660` | `root:sdnat` | Read-only control |
 | `*.lock` | `0600` | daemon | Lock files |
-| `vnet.json` | existing mode, default `0600` | daemon | Config |
+| `sdnat.json` | existing mode, default `0600` | daemon | Config |
 | journal/audit/pending | `0600` | daemon | Transaction state |
 
 Group membership:
 
-- Read-only web account: `vnet` only.
-- Read/write web account: `vnet` and `vnet-admin`. It needs `vnet` to
+- Read-only web account: `sdnat` only.
+- Read/write web account: `sdnat` and `sdnat-admin`. It needs `sdnat` to
   traverse the state directory and open the read-only socket, and
-  `vnet-admin` to open the read/write socket.
+  `sdnat-admin` to open the read/write socket.
 - The daemon runs as root or with the capabilities needed for netlink; it owns
   the files.
 
@@ -264,7 +264,7 @@ may keep using the address until it renews.
 - `config.rollback` is not a raw file restore. It uses the same transaction,
   diff, confirm and audit path.
 - `nat.apply` remains a v2 compatibility operation. It is not used by the web.
-  After the P1 CLI migration, `vnet nat` also uses `config.apply`; raw
+  After the P1 CLI migration, `sdnat nat` also uses `config.apply`; raw
   `nat.apply` remains only for already-deployed v2 clients.
 
 ### 9. Restart token and result semantics
@@ -301,7 +301,7 @@ Restart token rules:
 - `daemon.stop` does not use a restart token; it uses typed confirmation.
 
 For local preview and single-host deployments without a service manager,
-`vnetd --enable-restart` is an explicit opt-in. It sets
+`sdnatd --enable-restart` is an explicit opt-in. It sets
 `restart_supported` and, after `daemon.restart`, tears down the datapath and
 control socket, then re-execs the same argv. This preserves the requested-
 restart versus crash distinction for the web flow, but it is not a supervisor:

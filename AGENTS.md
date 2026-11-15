@@ -1,4 +1,4 @@
-# vNET — Agent Guide
+# SDNAT — Agent Guide
 
 Portable virtual router in Zig 0.16+: L2/L3 forwarding, bridging, NAT, DHCP,
 DNS and firewall for Linux and Android. No GUI in v1; an optional post-v1 web
@@ -12,13 +12,13 @@ the contract for any agent working in this repo.
 | Core library | `src/` | Zig, `std.Io`, `std.crypto` |
 | Shard graph | `src/shard_*.zig` | named Zig modules; ADR-018 |
 | Ports / datapath | `src/port/`, `src/l2/`, `src/l3/` | AF_PACKET, TUN/TAP, fd, netlink |
-| NAT / firewall | `src/nat/`, `src/l3/forward.zig` | conntrack, SNAT/DNAT; `vnet-fw` reserved until the engine split |
+| NAT / firewall | `src/nat/`, `src/l3/forward.zig` | conntrack, SNAT/DNAT; `sdnat-fw` reserved until the engine split |
 | Services | `src/services/` | DHCPv4, DNS forwarder |
 | CLI / daemon | `src/app/`, `exec/` | Zig |
-| Executables | `exec/` | `vnet`, `vnetd`; `vnetweb` post-v1 |
-| C ABI | `src/ffi.zig`, `include/vnet.h` | for Android/iOS/desktop hosts |
+| Executables | `exec/` | `sdnat`, `sdnatd`; `sdnatweb` post-v1 |
+| C ABI | `src/ffi.zig`, `include/sdnat.h` | for Android/iOS/desktop hosts |
 | Control plane | `src/control/` | config diff, journal, unix socket API |
-| Web admin (post-v1) | `src/web/`, `exec/vnetweb/` | Zig HTTP server + server-rendered HTMX 4, embedded assets, Unix-socket client |
+| Web admin (post-v1) | `src/web/`, `exec/sdnatweb/` | Zig HTTP server + server-rendered HTMX 4, embedded assets, Unix-socket client |
 | Tests | `test/` | unit, netns, fuzz, Android smoke |
 
 ## Commands
@@ -37,7 +37,7 @@ bash scripts/test_netns.sh     # Linux L2/hotplug topology tests
 bash scripts/test_route.sh     # IPv4 forwarding (ping + TCP)
 bash scripts/test_tun.sh       # TUN ingress/egress (ICMP + TCP)
 bash scripts/test_ipv6.sh      # IPv6 forwarding/NDP (ping + TCP)
-bash scripts/test_journal.sh   # iface/route journal + vnet down
+bash scripts/test_journal.sh   # iface/route journal + sdnat down
 bash scripts/test_crash.sh     # kill -9, journal replay, doctor --repair
 bash scripts/nat_matrix.sh     # NAT/port-forward matrix (R3+)
 bash scripts/test_firewall.sh  # ordered rules/default drop (R6)
@@ -63,18 +63,18 @@ Always run `zig build test`. For port/forwarding changes, also run
 5. **Hostile input.** No `unreachable` on frames, packets or config. Use
    bounds-checked readers returning typed errors. Every parser is fuzzed.
 6. **Journal before mutation.** Every host change (route, address, link,
-   bridge membership, NAT rule) is recorded with its inverse. `vnet down` must
+   bridge membership, NAT rule) is recorded with its inverse. `sdnat down` must
    restore the pre-start state.
 7. **No silent fallback.** If a configured backend or capability is missing,
    fail with an actionable typed error.
-8. **ABI stability.** `include/vnet.h` mirrors `src/ffi.zig`; changing an export
+8. **ABI stability.** `include/sdnat.h` mirrors `src/ffi.zig`; changing an export
    updates the header, version and changelog.
 9. **No secrets in logs.** Never log packet payloads, keys or tokens above
    debug level.
 10. **One concern per PR.** Protocol/behavior changes need an ADR and tests.
 11. **Respect shard boundaries.** Import another subsystem only through its
-    declared `vnet-*` module. Shards may not import the composition layer
-    (`src/lib.zig`, `src/app/`, `src/ffi.zig`), and `vnet-l3` may not import
+    declared `sdnat-*` module. Shards may not import the composition layer
+    (`src/lib.zig`, `src/app/`, `src/ffi.zig`), and `sdnat-l3` may not import
     NAT, firewall or services. See ADR-018.
 
 ## Code style
@@ -106,7 +106,7 @@ Always run `zig build test`. For port/forwarding changes, also run
 
 | Pitfall | Symptom | Fix |
 |---|---|---|
-| Stale routes/rules after crash | Blackholed or leaked traffic | Journal + `vnet doctor --repair` |
+| Stale routes/rules after crash | Blackholed or leaked traffic | Journal + `sdnat doctor --repair` |
 | AF_PACKET sees kernel-handled packets too | Double processing | Understand tap vs packet socket semantics; use AF_PACKET carefully |
 | TUN/AF_PACKET checksum offload mismatch | Corrupt TCP checksums | Software repair on forward (ADR-007); offload only when negotiated |
 | Android `addAddress` without `addRoute` | No traffic reaches TUN | Add the virtual-subnet route explicitly |
@@ -140,7 +140,7 @@ Always run `zig build test`. For port/forwarding changes, also run
 - User-visible change → `CHANGELOG.md` under `Unreleased`.
 - Platform quirk → `docs/ANDROID.md` or a platform note.
 - Release/package change → `docs/RELEASE.md`, `docs/PERFORMANCE.md` and
-  `packaging/vnetd.service`.
+  `packaging/sdnatd.service`.
 
 ## Commits
 
@@ -163,5 +163,5 @@ Installed in `.opencode/skills/`:
 - `doc-coauthoring` — write ADRs, specs, proposals.
 - `webapp-testing` — Playwright testing for the post-v1 web admin.
 
-Use `skill-creator` to add a `vnet-networking` skill once the port/packet
+Use `skill-creator` to add a `sdnat-networking` skill once the port/packet
 interfaces stabilize.

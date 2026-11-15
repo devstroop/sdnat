@@ -1,5 +1,5 @@
 const std = @import("std");
-const types = @import("vnet-core").types;
+const types = @import("sdnat-core").types;
 const message = @import("message.zig");
 
 pub const Error = error{

@@ -1,4 +1,4 @@
-//! vnet-dns: DNS wire format, cache, diagnostics and forwarder.
+//! sdnat-dns: DNS wire format, cache, diagnostics and forwarder.
 
 pub const message = @import("services/dns/message.zig");
 pub const probe = @import("services/dns/probe.zig");
